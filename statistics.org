@@ -113,7 +113,7 @@ trng_hist, _ = np.histogram(trng, bins = k, range = (0,k))
 
 *** Mean
 
-Consider a discrete uniform distribution $X \in \{0,1,2,\cdots k-1\}$ and $P(X=i) = \frac{1}{k}$, then mean is defined as $E[x] = \sum_{i=0}^{k-1}i*\frac{1}{k}$, therefore, equal to $E[x] = \frac{k-1}{2}$. 
+Consider a discrete uniform distribution $X \in \{0,1,2,\cdots, k-1\}$ and $P(X=i) = \frac{1}{k}$, then mean is defined as $E[X] = \sum_{i=0}^{k-1} i \cdot \frac{1}{k}$, therefore, equal to $E[x] = \frac{k-1}{2}$. 
 
 #+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
 theoretical_mean = (ARRAY_SIZE - 1) / 2
