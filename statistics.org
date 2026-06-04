@@ -137,11 +137,16 @@ axes[1].set_title("PRNG Uniformity")
 axes[1].set_xlabel("Value")
 axes[1].legend()
 
+mean_theoretical = (RANGE_MIN + RANGE_MAX) / 2
+ 
 for ax in axes:
     ax.set_xlim(RANGE_MIN, RANGE_MAX)
     ax.set_ylim(0, 2/k)
+    ax.grid(alpha=0.3)
+    ax.axvline(mean_theoretical, color="red", linestyle=":", label="Mean")
 
-
+axes[0].set_title(f"TRNG\nmean={np.mean(trng):.2f}, std={np.std(trng):.2f}")
+axes[1].set_title(f"PRNG\nmean={np.mean(prng):.2f}, std={np.std(prng):.2f}")
 plt.suptitle("Uniformity Check: TRNG vs PRNG")
 plt.tight_layout()
 plt.show()
@@ -152,10 +157,157 @@ plt.show()
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/f870880fc38ac17b88643475ad975e209f50784c.png]]
+[[file:./.ob-jupyter/61b754f5df06f59422a384a80fa7296fbea011af.png]]
 : Saving figure uniformity
 : <Figure size 640x480 with 0 Axes>
 :END:
+
+#+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
+plt.figure()
+
+mean_theoretical = (RANGE_MIN + RANGE_MAX) / 2
+
+plt.boxplot(
+    [trng, prng],
+    tick_labels=["TRNG", "PRNG"],
+    showmeans=True,
+    patch_artist=True,
+    boxprops=dict(facecolor="lightblue"),
+    medianprops=dict(color="black"),
+    meanprops=dict(marker="o", markerfacecolor="red", markeredgecolor="black")
+)
+
+plt.axhline(
+    mean_theoretical,
+    color="green",
+    linestyle="--",
+    label="Theoretical Mean"
+)
+
+plt.title("Spread Comparison (Boxplot)")
+plt.ylabel("Value")
+plt.grid(axis="y", alpha=0.3)
+plt.legend()
+
+plt.show()
+save_figure("spread_comparison_boxplot", BASE_IMAGES_PATH)
+
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/09a49552e75d60da5a148692d3aae0d7f16ea8e2.png]]
+: Saving figure spread_comparison_boxplot
+: <Figure size 640x480 with 0 Axes>
+:END:
+
+
+#+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
+bins = 50
+expected_prob = 1 / bins   # IMPORTANT: matches histogram bins!
+
+
+expected_count = len(trng) / bins
+
+
+
+trng_hist, _ = np.histogram(trng, bins=bins, range=(RANGE_MIN, RANGE_MAX))
+prng_hist, _ = np.histogram(prng, bins=bins, range=(RANGE_MIN, RANGE_MAX))
+
+trng_residual = (trng_hist - expected_count) / np.sqrt(expected_count)
+prng_residual = (prng_hist - expected_count) / np.sqrt(expected_count)
+
+plt.figure()
+
+plt.plot(trng_residual, label="TRNG residual")
+plt.plot(prng_residual, label="PRNG residual")
+
+plt.axhline(0, linestyle="--", color="black")
+
+
+plt.axhline(2, linestyle=":", color="red")
+plt.axhline(-2, linestyle=":", color="red")
+
+plt.title("Deviation from Uniform Distribution")
+plt.xlabel("Bin index")
+plt.ylabel("Deviation from expected probability")
+plt.legend()
+plt.grid(alpha=0.3)
+
+plt.show()
+
+
+save_figure("deviation_from_uniform_distribution", BASE_IMAGES_PATH)
+
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/e5bdab1e7ca377c9c65411a460e1010d4ced3fa4.png]]
+: Saving figure deviation_from_uniform_distribution
+: <Figure size 640x480 with 0 Axes>
+:END:
+
+
+#+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
+# --- CDF comparison ---
+from statsmodels.distributions.empirical_distribution import ECDF
+
+trng_ecdf = ECDF(trng)
+prng_ecdf = ECDF(prng)
+
+x = np.linspace(RANGE_MIN, RANGE_MAX, 1000)
+
+plt.figure()
+
+plt.plot(x, trng_ecdf(x), label="TRNG")
+plt.plot(x, prng_ecdf(x), label="PRNG")
+
+plt.plot(
+    x,
+    (x - RANGE_MIN) / (RANGE_MAX - RANGE_MIN),
+    "--",
+    label="Ideal Uniform CDF"
+)
+
+plt.legend()
+plt.title("CDF Comparison")
+plt.xlabel("Value")
+plt.ylabel("F(x)")
+plt.grid(alpha=0.3)
+
+plt.show()
+
+
+# --- CDF deviation (KS-style) ---
+plt.figure()
+
+ideal_cdf = (x - RANGE_MIN) / (RANGE_MAX - RANGE_MIN)
+
+plt.plot(x, trng_ecdf(x) - ideal_cdf, label="TRNG")
+plt.plot(x, prng_ecdf(x) - ideal_cdf, label="PRNG")
+
+plt.axhline(0, linestyle="--", color="black")
+
+plt.title("CDF Deviation (KS-style)")
+plt.xlabel("Value")
+plt.ylabel("Deviation")
+plt.legend()
+plt.grid(alpha=0.3)
+
+plt.show()
+save_figure("cdf_deviation", BASE_IMAGES_PATH)
+
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/0ccb526cf2debecadb747d319351eccf4f4226bc.png]]
+[[file:./.ob-jupyter/0f50928862eb82f872f1493f6e8846efbad21176.png]]
+: Saving figure cdf_deviation
+: <Figure size 640x480 with 0 Axes>
+:END:
+
 
 
 ** Testing

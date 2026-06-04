@@ -1,6 +1,7 @@
 seaborn
 pandas
 scipy
+statsmodels
 requests
 jupyter
 numpy
