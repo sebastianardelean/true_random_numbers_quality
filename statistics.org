@@ -137,6 +137,11 @@ axes[1].set_title("PRNG Uniformity")
 axes[1].set_xlabel("Value")
 axes[1].legend()
 
+for ax in axes:
+    ax.set_xlim(RANGE_MIN, RANGE_MAX)
+    ax.set_ylim(0, 2/k)
+
+
 plt.suptitle("Uniformity Check: TRNG vs PRNG")
 plt.tight_layout()
 plt.show()
@@ -147,7 +152,7 @@ plt.show()
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/6a6c18c793b0aa22946944c2e23482b792d00ca8.png]]
+[[file:./.ob-jupyter/f870880fc38ac17b88643475ad975e209f50784c.png]]
 : Saving figure uniformity
 : <Figure size 640x480 with 0 Axes>
 :END:
