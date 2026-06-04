@@ -10,6 +10,7 @@ import pandas as pd
 import seaborn as sns
 from scipy import stats
 from scipy.stats import skew, kurtosis, wasserstein_distance, chisquare, norm
+import matplotlib.pyplot as plt
 from collections import deque
 import numpy as np
 import requests as re
@@ -26,7 +27,7 @@ PROJECT_ROOT_DIR = "./."
 BASE_IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images")
 os.makedirs(BASE_IMAGES_PATH, exist_ok = True)
 
-def save_figure(fig_id, image_path, tight_layout = True, fix_extension = "png", resolution = 300):
+def save_figure(fig_id, image_path, tight_layout = True, fig_extension = "png", resolution = 300):
     path = os.path.join(image_path, fig_id + "." + fig_extension)
     print(f"Saving figure {fig_id}")
     if tight_layout:
@@ -53,7 +54,7 @@ class Qrng:
         res = literal_eval(response.text)
         return res
 
-def qrandint(l, h, n, pool_size = 10000) -> np.array:
+def qrandint(l, h, n, pool_size = 100000) -> np.array:
     if not hasattr(qrandint, "ivalues"):
        qrandint.ivalues = {}
 
@@ -83,7 +84,7 @@ def qrandint(l, h, n, pool_size = 10000) -> np.array:
 #+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
 RANGE_MIN = 0
 RANGE_MAX = 1000
-ARRAY_SIZE = 1000
+ARRAY_SIZE = 10000
 #+END_SRC
 
 #+RESULTS:
@@ -93,19 +94,63 @@ ARRAY_SIZE = 1000
 #+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
 trng = qrandint(RANGE_MIN, RANGE_MAX + 1, ARRAY_SIZE, pool_size = 100000)
 prng = np.random.randint(RANGE_MIN, RANGE_MAX + 1, size = ARRAY_SIZE)
-
-k = 256
-expected_uniform = np.full(k, 100 / k)
 #+END_SRC
 
 #+RESULTS:
 
 #+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
-prng_hist, _ = np.histogram(prng, bins = k, range = (0, k))
-trng_hist, _ = np.histogram(trng, bins = k, range = (0,k))
+bins = 50
+k = RANGE_MAX - RANGE_MIN + 1
+
+prng_hist, _ = np.histogram(prng, bins = bins, range = (0, k))
+trng_hist, _ = np.histogram(trng, bins = bins, range = (0,k))
+
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharex=True, sharey=True)
+
+# --- TRNG ---
+axes[0].hist(trng, bins=bins, alpha=0.6, density=True, label="TRNG")
+axes[0].hlines(
+    y=1/k,
+    xmin=RANGE_MIN,
+    xmax=RANGE_MAX,
+    colors="black",
+    linestyles="dashed",
+    label="Theoretical Uniform"
+)
+axes[0].set_title("TRNG Uniformity")
+axes[0].set_xlabel("Value")
+axes[0].set_ylabel("Density")
+axes[0].legend()
+
+# --- PRNG ---
+axes[1].hist(prng, bins=bins, alpha=0.6, density=True, label="PRNG")
+axes[1].hlines(
+    y=1/k,
+    xmin=RANGE_MIN,
+    xmax=RANGE_MAX,
+    colors="black",
+    linestyles="dashed",
+    label="Theoretical Uniform"
+)
+axes[1].set_title("PRNG Uniformity")
+axes[1].set_xlabel("Value")
+axes[1].legend()
+
+plt.suptitle("Uniformity Check: TRNG vs PRNG")
+plt.tight_layout()
+plt.show()
+
+save_figure("uniformity", BASE_IMAGES_PATH)
+plt.show()
 #+END_SRC
 
 #+RESULTS:
+:RESULTS:
+[[file:./.ob-jupyter/6a6c18c793b0aa22946944c2e23482b792d00ca8.png]]
+: Saving figure uniformity
+: <Figure size 640x480 with 0 Axes>
+:END:
 
 
 ** Testing
@@ -116,7 +161,7 @@ trng_hist, _ = np.histogram(trng, bins = k, range = (0,k))
 Consider a discrete uniform distribution $X \in \{0,1,2,\cdots, k-1\}$ and $P(X=i) = \frac{1}{k}$, then mean is defined as $E[X] = \sum_{i=0}^{k-1} i \cdot \frac{1}{k}$, therefore, equal to $E[x] = \frac{k-1}{2}$. 
 
 #+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
-theoretical_mean = (ARRAY_SIZE - 1) / 2
+theoretical_mean = (RANGE_MAX - 1) / 2
 trng_mean = np.mean(trng)
 prng_mean = np.mean(prng)
 
@@ -134,22 +179,21 @@ print(f"PRNG:\n\tMean:{prng_mean}\n\tError:{prng_error}\n\tRelative Error:{prng_
 #+RESULTS:
 : Theoretical Mean:499.5
 : TRNG:
-: 	Mean:498.693
-: 	Error:-0.8070000000000164
-: 	Relative Error:0.0016156156156156485
+: 	Mean:500.9405
+: 	Error:1.440499999999986
+: 	Relative Error:0.0028838838838838557
 : PRNG:
-: 	Mean:484.577
-: 	Error:-14.923000000000002
-: 	Relative Error:0.02987587587587588
+: 	Mean:503.2022
+: 	Error:3.702200000000005
+: 	Relative Error:0.007411811811811822
 
-Over 1000 samples, the deviation of TRNG is -0.81 (maybe statistical noise) meaning that the TRNG behaviour is as expected.
 
 
 *** Std
 
 #+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
 
-theoretical_std = np.sqrt((ARRAY_SIZE ** 2 - 1) / 12)
+theoretical_std = np.sqrt((RANGE_MAX ** 2 - 1) / 12)
 trng_std = np.std(trng)
 prng_std = np.std(prng)
 trng_error = trng_std - theoretical_std
@@ -167,13 +211,13 @@ print(f"PRNG:\n\tMean:{prng_std}\n\tError:{prng_error}\n\tRelative Error:{prng_r
 #+RESULTS:
 : Theoretical STD:288.6749902572095
 : TRNG:
-: 	Mean:286.2548912263335
-: 	Error:-2.420099030876031
-: 	Relative Error:0.008383473153388598
+: 	Mean:289.36818304670265
+: 	Error:0.6931927894931391
+: 	Relative Error:0.00240129146233106
 : PRNG:
-: 	Mean:286.49078182552404
-: 	Error:-2.1842084316854766
-: 	Relative Error:0.007566323739161976
+: 	Mean:290.1478859394981
+: 	Error:1.4728956822885948
+: 	Relative Error:0.005102262863077416
 
 *** Skewness
 
@@ -185,8 +229,8 @@ print(f"TRNG Skew {trng_skew}\nPRGN Skew {prng_skew}")
 #+END_SRC
 
 #+RESULTS:
-: TRNG Skew -0.02173724847953828
-: PRGN Skew 0.037333171690154
+: TRNG Skew 0.0016200362014880435
+: PRGN Skew -0.005628332462267576
 
 Value interpretation: positive skew means a heavier right tail while negative means a heavier left tail.
 
@@ -205,7 +249,7 @@ print(f"TRNG kurtosis:{trng_kurt}\nPRNG kurtosis:{prng_kurt}")
 #+END_SRC
 
 #+RESULTS:
-: TRNG kurtosis:-1.1883947084187685
-: PRNG kurtosis:-1.1795203712793563
+: TRNG kurtosis:-1.1999863812663443
+: PRNG kurtosis:-1.2129487958723069
 
 
