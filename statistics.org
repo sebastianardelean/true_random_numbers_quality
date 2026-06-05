@@ -2,7 +2,7 @@
 #+PROPERTY: header-args:python :session hello
 #+PROPERTY: header-args:python+ :async yes
 
-* QRNGs vs PRNGs
+* Statistics: QRNGs vs PRNGs
 
 #+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
 import os

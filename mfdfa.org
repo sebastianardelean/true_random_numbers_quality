@@ -1,0 +1,98 @@
+#+PROPERTY: header-args:python :kernel tutorials :async yes :results output :exports both
+#+PROPERTY: header-args:python :session hello
+#+PROPERTY: header-args:python+ :async yes
+
+* MFDFA:QRNGs vs PRNGs
+
+#+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
+import os
+import pandas as pd
+import seaborn as sns
+from scipy import stats
+from scipy.stats import skew, kurtosis, wasserstein_distance, chisquare, norm
+import matplotlib.pyplot as plt
+from collections import deque
+import numpy as np
+import requests as re
+from ast import literal_eval
+#+END_SRC
+
+#+RESULTS:
+
+** Project setup
+
+
+#+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
+PROJECT_ROOT_DIR = "./."
+BASE_IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images")
+os.makedirs(BASE_IMAGES_PATH, exist_ok = True)
+
+def save_figure(fig_id, image_path, tight_layout = True, fig_extension = "png", resolution = 300):
+    path = os.path.join(image_path, fig_id + "." + fig_extension)
+    print(f"Saving figure {fig_id}")
+    if tight_layout:
+        plt.tight_layout()
+    plt.savefig(path, format = fig_extension, dpi = resolution)
+#+END_SRC
+
+#+RESULTS:
+
+** Generators configurations
+
+*** TRNG
+
+#+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
+class Qrng:
+    def __init__(self, domain) -> None:
+        self.__domain = domain
+        self.__api_int = "https://{}/api/2.0/int".format(self.__domain)
+
+    def qrand_int(self, low, hi, samples) -> list[int]:
+        session = re.Session()
+        payload = {"min": low, "max": hi, "quantity": samples}
+        response = session.get(self.__api_int, params = payload)
+        res = literal_eval(response.text)
+        return res
+
+def qrandint(l, h, n, pool_size = 100000) -> np.array:
+    if not hasattr(qrandint, "ivalues"):
+       qrandint.ivalues = {}
+
+    key = str(l) + str(h)
+    if key in qrandint.ivalues:
+        # found the key
+        values = qrandint.ivalues[key]
+        if len(values) == 0 or len(values) < n:
+            qrng = Qrng("random.cs.upt.ro")
+            values = qrng.qrand_int(l, h, (n + pool_size))
+            qrandint.ivalues[key] += values
+        else:
+            pass
+    else:
+        qrng = Qrng("random.cs.upt.ro")
+        qrandint.ivalues[key] = qrng.qrand_int(l, h, (n + pool_size))
+
+    outvals = qrandint.ivalues[key][:n]
+    del qrandint.ivalues[key][:n]
+    return np.array(outvals, dtype = np.uint32)
+#+END_SRC
+
+#+RESULTS:
+
+*** Configurations
+
+#+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
+RANGE_MIN = 0
+RANGE_MAX = 1000
+ARRAY_SIZE = 10000
+#+END_SRC
+
+#+RESULTS:
+
+*** Random values
+
+#+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
+trng = qrandint(RANGE_MIN, RANGE_MAX + 1, ARRAY_SIZE, pool_size = 100000)
+prng = np.random.randint(RANGE_MIN, RANGE_MAX + 1, size = ARRAY_SIZE)
+#+END_SRC
+
