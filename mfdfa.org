@@ -96,3 +96,10 @@ trng = qrandint(RANGE_MIN, RANGE_MAX + 1, ARRAY_SIZE, pool_size = 100000)
 prng = np.random.randint(RANGE_MIN, RANGE_MAX + 1, size = ARRAY_SIZE)
 #+END_SRC
 
+
+
+
+
+** Conclusion
+
+Applying multifractal detrended fluctuation analysis confirms that both TRNG and PRNG sequences exhibit behavior consistent with uncorrelated white noise, showing no significant long-range dependencies or multifractal structure. Consequently, this method does not provide additional discriminatory power between the two generators.
