@@ -157,7 +157,7 @@ plt.show()
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/61b754f5df06f59422a384a80fa7296fbea011af.png]]
+[[file:./.ob-jupyter/6fae77fcda1ca0ffaebd7edee838e3ff03e051a5.png]]
 : Saving figure uniformity
 : <Figure size 640x480 with 0 Axes>
 :END:
@@ -196,7 +196,7 @@ save_figure("spread_comparison_boxplot", BASE_IMAGES_PATH)
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/09a49552e75d60da5a148692d3aae0d7f16ea8e2.png]]
+[[file:./.ob-jupyter/c1722c2081030e9efba83d4ecc8f1c166721b4cc.png]]
 : Saving figure spread_comparison_boxplot
 : <Figure size 640x480 with 0 Axes>
 :END:
@@ -243,7 +243,7 @@ save_figure("deviation_from_uniform_distribution", BASE_IMAGES_PATH)
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/e5bdab1e7ca377c9c65411a460e1010d4ced3fa4.png]]
+[[file:./.ob-jupyter/96561b63ce4142e38209ed17a4e6e2fe57cefa60.png]]
 : Saving figure deviation_from_uniform_distribution
 : <Figure size 640x480 with 0 Axes>
 :END:
@@ -302,15 +302,15 @@ save_figure("cdf_deviation", BASE_IMAGES_PATH)
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/0ccb526cf2debecadb747d319351eccf4f4226bc.png]]
-[[file:./.ob-jupyter/0f50928862eb82f872f1493f6e8846efbad21176.png]]
+[[file:./.ob-jupyter/87b278ca7381ef787cf4c5eb399f6ac9e807c792.png]]
+[[file:./.ob-jupyter/5375dc770e45d09252fd08c81bd2bc16b62a284b.png]]
 : Saving figure cdf_deviation
 : <Figure size 640x480 with 0 Axes>
 :END:
 
 
 
-** Testing
+** Testing with the 4 statistical moments
 
 
 *** Mean
@@ -336,13 +336,13 @@ print(f"PRNG:\n\tMean:{prng_mean}\n\tError:{prng_error}\n\tRelative Error:{prng_
 #+RESULTS:
 : Theoretical Mean:499.5
 : TRNG:
-: 	Mean:500.9405
-: 	Error:1.440499999999986
-: 	Relative Error:0.0028838838838838557
+: 	Mean:503.7926
+: 	Error:4.292599999999993
+: 	Relative Error:0.00859379379379378
 : PRNG:
-: 	Mean:503.2022
-: 	Error:3.702200000000005
-: 	Relative Error:0.007411811811811822
+: 	Mean:497.4056
+: 	Error:-2.0944000000000074
+: 	Relative Error:0.004192992992993008
 
 
 
@@ -368,13 +368,13 @@ print(f"PRNG:\n\tMean:{prng_std}\n\tError:{prng_error}\n\tRelative Error:{prng_r
 #+RESULTS:
 : Theoretical STD:288.6749902572095
 : TRNG:
-: 	Mean:289.36818304670265
-: 	Error:0.6931927894931391
-: 	Relative Error:0.00240129146233106
+: 	Mean:288.12573953959753
+: 	Error:-0.549250717611983
+: 	Relative Error:0.0019026612493261033
 : PRNG:
-: 	Mean:290.1478859394981
-: 	Error:1.4728956822885948
-: 	Relative Error:0.005102262863077416
+: 	Mean:288.47468847134576
+: 	Error:-0.2003017858637577
+: 	Relative Error:0.0006938660868587498
 
 *** Skewness
 
@@ -386,8 +386,8 @@ print(f"TRNG Skew {trng_skew}\nPRGN Skew {prng_skew}")
 #+END_SRC
 
 #+RESULTS:
-: TRNG Skew 0.0016200362014880435
-: PRGN Skew -0.005628332462267576
+: TRNG Skew -0.006666057168653873
+: PRGN Skew 0.012074558199049776
 
 Value interpretation: positive skew means a heavier right tail while negative means a heavier left tail.
 
@@ -406,7 +406,131 @@ print(f"TRNG kurtosis:{trng_kurt}\nPRNG kurtosis:{prng_kurt}")
 #+END_SRC
 
 #+RESULTS:
-: TRNG kurtosis:-1.1999863812663443
-: PRNG kurtosis:-1.2129487958723069
+: TRNG kurtosis:-1.2071064267375555
+: PRNG kurtosis:-1.1922855725151227
 
 
+** Testing with Pearson Chi Squared
+
+#+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
+# --- Pearson Chi-Squared Test ---
+
+bins = 50
+
+# Observed frequencies
+trng_hist, _ = np.histogram(trng, bins=bins, range=(RANGE_MIN, RANGE_MAX))
+prng_hist, _ = np.histogram(prng, bins=bins, range=(RANGE_MIN, RANGE_MAX))
+
+# Expected frequencies (uniform)
+expected = np.ones(bins) * (len(trng) / bins)
+
+# Run test
+chi_trng = chisquare(trng_hist, expected)
+chi_prng = chisquare(prng_hist, expected)
+
+print("=== Pearson Chi-Square Test ===\n")
+
+print("TRNG:")
+print(f"\tChi2 statistic: {chi_trng.statistic}")
+print(f"\tp-value: {chi_trng.pvalue}")
+
+print("\nPRNG:")
+print(f"\tChi2 statistic: {chi_prng.statistic}")
+print(f"\tp-value: {chi_prng.pvalue}")
+
+
+x = np.arange(bins)
+width = 0.35
+
+plt.figure()
+
+plt.bar(x - width/2, trng_hist, width,
+        label=f"TRNG (χ²={chi_trng.statistic:.1f}, p={chi_trng.pvalue:.4f})")
+
+plt.bar(x + width/2, prng_hist, width,
+        label=f"PRNG (χ²={chi_prng.statistic:.1f}, p={chi_prng.pvalue:.4f})")
+
+plt.plot(x, expected, 'k--', label="Expected")
+
+plt.xlabel("Bin index")
+plt.ylabel("Frequency")
+plt.title("Chi-Square Test Visualization")
+plt.legend()
+
+plt.grid(alpha=0.3)
+
+save_figure("chi_square", BASE_IMAGES_PATH)
+plt.show()
+
+
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: === Pearson Chi-Square Test ===
+: 
+: TRNG:
+: 	Chi2 statistic: 52.95
+: 	p-value: 0.3242902798779264
+: 
+: PRNG:
+: 	Chi2 statistic: 36.66
+: 	p-value: 0.9033605321967894
+: Saving figure chi_square
+[[file:./.ob-jupyter/2ba1e86079fe4e5831a6dcd2172119bb4a62247b.png]]
+:END:
+
+
+** Testing with Wasserstein
+
+#+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
+
+# --- Wasserstein Distance ---
+
+uniform_ref = np.linspace(RANGE_MIN, RANGE_MAX, ARRAY_SIZE)
+
+w_trng = wasserstein_distance(trng, uniform_ref)
+w_prng = wasserstein_distance(prng, uniform_ref)
+
+
+print("=== Wasserstein Distance ===\n")
+print(f"TRNG: {w_trng}")
+print(f"PRNG: {w_prng}")
+
+plt.figure()
+
+labels = ["TRNG", "PRNG"]
+values = [w_trng, w_prng]
+
+plt.bar(labels, values, color=["blue", "orange"])
+
+plt.title("Wasserstein Distance to Uniform Distribution")
+plt.ylabel("Distance")
+
+plt.grid(axis="y", alpha=0.3)
+
+for i, v in enumerate(values):
+    plt.text(i, v, f"{v:.4f}", ha="center", va="bottom")
+
+save_figure("wasserstein", BASE_IMAGES_PATH)
+plt.show()
+
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: === Wasserstein Distance ===
+: 
+: TRNG: 3.8012071407140984
+: PRNG: 2.645726472647242
+: Saving figure wasserstein
+[[file:./.ob-jupyter/e64f6d4f7aa31d3ed159b90f14c6816338edd1f6.png]]
+:END:
+
+
+** Conclusions
+
+In all tests it seems that PRNGs perform better but that is just because they are designed to be mathematically uniform (being optimized to pass statistical noise). TRNG, on the other hand, presents true randomness with real noise.
+Therefore, TRNG is more random but PRNG is more uniform looking.
+
+The Wasserstein distance indicates that both TRNG and PRNG approximate a uniform distribution well. The PRNG achieves a slightly lower distance (2.65) compared to the TRNG (3.80), suggesting a closer match to the ideal uniform distribution. This is expected, as pseudo-random generators are optimized for statistical uniformity, whereas true random generators may exhibit natural fluctuations due to physical noise.
