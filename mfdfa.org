@@ -15,6 +15,8 @@ from collections import deque
 import numpy as np
 import requests as re
 from ast import literal_eval
+
+from MFDFA import MFDFA
 #+END_SRC
 
 #+RESULTS:
@@ -97,134 +99,170 @@ prng = np.random.randint(RANGE_MIN, RANGE_MAX + 1, size = ARRAY_SIZE)
 #+END_SRC
 
 #+RESULTS:
-:RESULTS:
-# [goto error]
-#+begin_example
-Traceback [36m(most recent call last)[39m:
-
-  File [92mc:\Users\sardelean.SAGUARO\Documents\Tools\miniconda3\envs\statistics\Lib\site-packages\IPython\core\interactiveshell.py:3748[39m in [95mrun_code[39m
-    exec(code_obj, self.user_global_ns, self.user_ns)
-
-  Cell [92mIn[5][39m[92m, line 1[39m
-    trng = qrandint(RANGE_MIN, RANGE_MAX + 1, ARRAY_SIZE, pool_size = 100000)
-
-  Cell [92mIn[3][39m[92m, line 29[39m in [95mqrandint[39m
-    qrandint.ivalues[key] = qrng.qrand_int(l, h, (n + pool_size))
-
-  Cell [92mIn[3][39m[92m, line 10[39m in [95mqrand_int[39m
-    res = literal_eval(response.text)
-
-  File [92mc:\Users\sardelean.SAGUARO\Documents\Tools\miniconda3\envs\statistics\Lib\ast.py:60[39m in [95mliteral_eval[39m
-    node_or_string = parse(node_or_string.lstrip(" \t"), mode='eval')
-
-[36m  [39m[36mFile [39m[32mc:\Users\sardelean.SAGUARO\Documents\Tools\miniconda3\envs\statistics\Lib\ast.py:46[39m[36m in [39m[35mparse[39m
-[31m    [39m[31mreturn compile(source, filename, mode, flags,[39m
-
-  [36mFile [39m[32m<unknown>:6[39m
-[31m    [39m[31m<p>You don't have permission to access this resource.</p>[39m
-              ^
-[31mSyntaxError[39m[31m:[39m unterminated string literal (detected at line 6)
-#+end_example
-:END:
 
 *** MFDFA
 
-#+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
-def mfdfa(signal, scales, q_vals):
-    signal = np.array(signal, dtype=float)
-    N = len(signal)
-
-    # Step 1: profile (cumulative sum, remove mean)
-    profile = np.cumsum(signal - np.mean(signal))
-
-    Fq = np.zeros((len(q_vals), len(scales)))
-
-    for i, s in enumerate(scales):
-        Ns = N // s
-        segments = np.array_split(profile[:Ns * s], Ns)
-
-        F_s = []
-
-        for seg in segments:
-            x = np.arange(len(seg))
-            coeffs = np.polyfit(x, seg, 1)  # linear detrending
-            trend = np.polyval(coeffs, x)
-            fluct = seg - trend
-            F_s.append(np.mean(fluct**2))
-
-        F_s = np.array(F_s)
-
-        for j, q in enumerate(q_vals):
-            if q == 0:
-                Fq[j, i] = np.exp(0.5 * np.mean(np.log(F_s)))
-            else:
-                Fq[j, i] = (np.mean(F_s ** (q / 2))) ** (1 / q)
-
-    return Fq
-#+END_SRC
-
 
 #+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
-# Scales (window sizes)
-scales = np.unique(np.logspace(1, 3, 20).astype(int))
+
+
+lag = np.logspace(0.7, 4, 30).astype(int)
 
 # q values (moments)
-q_vals = np.linspace(-5, 5, 11)
-
+# Select a list of powers q
+q_list = np.linspace(-10,10,41)
+q_list = q_list[q_list!=0.0]
+order = 2
 # Compute MFDFA
-Fq_trng = mfdfa(trng, scales, q_vals)
-Fq_prng = mfdfa(prng, scales, q_vals)
-``
+lag_t, dfa_t = MFDFA(trng, lag = lag, q = q_list, order = order)
+lag_p, dfa_p = MFDFA(prng, lag = lag, q = q_list, order = order)
+
 #+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
+print(f"{dfa_t.shape}")
+# Selected q values
+q_selected = [-10, -5, -2, 2, 5, 10]
+
+fig, ax = plt.subplots(figsize=(8, 6))
+
+# Plot MFDFA curves
+for q in q_selected:
+    idx = np.where(q_list == q)[0][0]
+    ax.loglog(lag_t, dfa_t[:, idx], label=f"q = {q}")
+
+# ------------------------------------------------------------------
+# Theoretical slope for q = -10: h(q) = 1/alpha = 1/1.5
+# ------------------------------------------------------------------
+alpha = 1.5
+h_neg10 = 1 / alpha
+
+idx_neg10 = np.where(q_list == -10)[0][0]
+ref_x = lag_t
+ref_y = dfa_t[0, idx_neg10] * (ref_x / lag_t[0])**h_neg10
+
+ax.loglog(
+    ref_x,
+    ref_y,
+    "k--",
+    linewidth=2,
+    label=rf"Theory $q=-10$, slope={h_neg10:.3f}"
+)
+
+# ------------------------------------------------------------------
+# Theoretical slope for q = 10: h(q) = 1/q = 1/10
+# ------------------------------------------------------------------
+h_pos10 = 1 / 10
+
+idx_pos10 = np.where(q_list == 10)[0][0]
+ref_y = dfa_t[0, idx_pos10] * (ref_x / lag_t[0])**h_pos10
+
+ax.loglog(
+    ref_x,
+    ref_y,
+    "k:",
+    linewidth=2,
+    label=rf"Theory $q=10$, slope={h_pos10:.3f}"
+)
+
+ax.set_xlabel(r"$s$")
+ax.set_ylabel(r"$F_q(s)$")
+ax.set_title("MFDFA")
+ax.legend()
+ax.grid(True, which="both", ls=":")
+plt.tight_layout()
+plt.show()
+
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: (30, 40)
+[[file:./.ob-jupyter/52aa28e857e2280f5d1f8c7ea02a22e54d5ffa63.png]]
+:END:
 
 
 #+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
-plt.figure(figsize=(8, 6))
-
-for i, q in enumerate(q_vals):
-    plt.loglog(scales, Fq_trng[i], label=f"TRNG q={q:.1f}", alpha=0.6)
-
-plt.title("MFDFA - TRNG")
-plt.xlabel("Scale (s)")
-plt.ylabel("Fq(s)")
-plt.grid(alpha=0.3)
-
-save_figure("mfdfa_trng", BASE_IMAGES_PATH)
-plt.show()
 
 
-plt.figure(figsize=(8, 6))
+lag = np.logspace(0.7, 4, 30).astype(int)
 
-for i, q in enumerate(q_vals):
-    plt.loglog(scales, Fq_prng[i], label=f"PRNG q={q:.1f}", alpha=0.6)
+# q values (moments)
+# Select a list of powers q
+q_list = np.linspace(-10,10,41)
+q_list = q_list[q_list!=0.0]
+order = 2
+# Compute MFDFA
+lag_t, dfa_t = MFDFA(trng, lag = lag, q = q_list, order = order)
+lag_p, dfa_p = MFDFA(prng, lag = lag, q = q_list, order = order)
 
-plt.title("MFDFA - PRNG")
-plt.xlabel("Scale (s)")
-plt.ylabel("Fq(s)")
-plt.grid(alpha=0.3)
-
-save_figure("mfdfa_prng", BASE_IMAGES_PATH)
-plt.show()
 #+END_SRC
 
+#+RESULTS:
 
 #+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
-def estimate_hurst(Fq, scales, q_index=5):  # q=0 approx
-    log_s = np.log(scales)
-    log_F = np.log(Fq[q_index])
+print(f"{dfa_t.shape}")
+# Selected q values
+q_selected = [-10, -5, -2, 2, 5, 10]
 
-    slope, _ = np.polyfit(log_s, log_F, 1)
-    return slope
+fig, ax = plt.subplots(figsize=(8, 6))
 
+# Plot MFDFA curves
+for q in q_selected:
+    idx = np.where(q_list == q)[0][0]
+    ax.loglog(lag_p, dfa_p[:, idx], label=f"q = {q}")
 
-hurst_trng = estimate_hurst(Fq_trng, scales)
-hurst_prng = estimate_hurst(Fq_prng, scales)
+# ------------------------------------------------------------------
+# Theoretical slope for q = -10: h(q) = 1/alpha = 1/1.5
+# ------------------------------------------------------------------
+alpha = 1.5
+h_neg10 = 1 / alpha
 
-print("=== Hurst Exponent ===")
-print(f"TRNG: {hurst_trng}")
-print(f"PRNG: {hurst_prng}")
+idx_neg10 = np.where(q_list == -10)[0][0]
+ref_x = lag_p
+ref_y = dfa_p[0, idx_neg10] * (ref_x / lag_p[0])**h_neg10
+
+ax.loglog(
+    ref_x,
+    ref_y,
+    "k--",
+    linewidth=2,
+    label=rf"Theory $q=-10$, slope={h_neg10:.3f}"
+)
+
+# ------------------------------------------------------------------
+# Theoretical slope for q = 10: h(q) = 1/q = 1/10
+# ------------------------------------------------------------------
+h_pos10 = 1 / 10
+
+idx_pos10 = np.where(q_list == 10)[0][0]
+ref_y = dfa_p[0, idx_pos10] * (ref_x / lag_p[0])**h_pos10
+
+ax.loglog(
+    ref_x,
+    ref_y,
+    "k:",
+    linewidth=2,
+    label=rf"Theory $q=10$, slope={h_pos10:.3f}"
+)
+
+ax.set_xlabel(r"$s$")
+ax.set_ylabel(r"$F_q(s)$")
+ax.set_title("MFDFA")
+ax.legend()
+ax.grid(True, which="both", ls=":")
+plt.tight_layout()
+plt.show()
 
 #+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: (30, 40)
+[[file:./.ob-jupyter/89c33ea4f4b2ad7233d6076d786cf2f2fb1dce19.png]]
+:END:
 
 
 ** Conclusion
