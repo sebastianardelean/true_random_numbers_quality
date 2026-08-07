@@ -180,7 +180,7 @@ plt.show()
 #+RESULTS:
 :RESULTS:
 : (30, 40)
-[[file:./.ob-jupyter/52aa28e857e2280f5d1f8c7ea02a22e54d5ffa63.png]]
+[[file:./.ob-jupyter/6d5923f2acac790f157df56bbda5728dc4496d17.png]]
 :END:
 
 
@@ -261,7 +261,7 @@ plt.show()
 #+RESULTS:
 :RESULTS:
 : (30, 40)
-[[file:./.ob-jupyter/89c33ea4f4b2ad7233d6076d786cf2f2fb1dce19.png]]
+[[file:./.ob-jupyter/27ee5d2c8a813c81799ea58d5bdc627e55b2a327.png]]
 :END:
 
 
