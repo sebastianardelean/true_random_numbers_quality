@@ -157,7 +157,7 @@ plt.show()
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/9bc9dda3f369552d00fe341c877dd4bb4ca7f14c.png]]
+[[file:./.ob-jupyter/6fae77fcda1ca0ffaebd7edee838e3ff03e051a5.png]]
 : Saving figure uniformity
 : <Figure size 640x480 with 0 Axes>
 :END:
@@ -196,7 +196,7 @@ save_figure("spread_comparison_boxplot", BASE_IMAGES_PATH)
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/69cc784532c0a07cdecba8de39d6fb01ff08bff9.png]]
+[[file:./.ob-jupyter/c1722c2081030e9efba83d4ecc8f1c166721b4cc.png]]
 : Saving figure spread_comparison_boxplot
 : <Figure size 640x480 with 0 Axes>
 :END:
@@ -243,7 +243,7 @@ save_figure("deviation_from_uniform_distribution", BASE_IMAGES_PATH)
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/579ed41d27b58b76a36807b75461dad1e6429543.png]]
+[[file:./.ob-jupyter/96561b63ce4142e38209ed17a4e6e2fe57cefa60.png]]
 : Saving figure deviation_from_uniform_distribution
 : <Figure size 640x480 with 0 Axes>
 :END:
@@ -302,8 +302,8 @@ save_figure("cdf_deviation", BASE_IMAGES_PATH)
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/74edbef2326690461f4315c06ae77fb8d098e8b2.png]]
-[[file:./.ob-jupyter/b1ba2b35e38dba4abca1f89f49f89cf1a4388d92.png]]
+[[file:./.ob-jupyter/87b278ca7381ef787cf4c5eb399f6ac9e807c792.png]]
+[[file:./.ob-jupyter/5375dc770e45d09252fd08c81bd2bc16b62a284b.png]]
 : Saving figure cdf_deviation
 : <Figure size 640x480 with 0 Axes>
 :END:
@@ -336,13 +336,13 @@ print(f"PRNG:\n\tMean:{prng_mean}\n\tError:{prng_error}\n\tRelative Error:{prng_
 #+RESULTS:
 : Theoretical Mean:499.5
 : TRNG:
-: 	Mean:500.3604
-: 	Error:0.8604000000000269
-: 	Relative Error:0.0017225225225225764
+: 	Mean:503.7926
+: 	Error:4.292599999999993
+: 	Relative Error:0.00859379379379378
 : PRNG:
-: 	Mean:501.212
-: 	Error:1.711999999999989
-: 	Relative Error:0.003427427427427406
+: 	Mean:497.4056
+: 	Error:-2.0944000000000074
+: 	Relative Error:0.004192992992993008
 
 
 
@@ -368,13 +368,13 @@ print(f"PRNG:\n\tMean:{prng_std}\n\tError:{prng_error}\n\tRelative Error:{prng_r
 #+RESULTS:
 : Theoretical STD:288.6749902572095
 : TRNG:
-: 	Mean:290.6047840484392
-: 	Error:1.929793791229713
-: 	Relative Error:0.0066850051315850605
+: 	Mean:288.12573953959753
+: 	Error:-0.549250717611983
+: 	Relative Error:0.0019026612493261033
 : PRNG:
-: 	Mean:289.90476652859644
-: 	Error:1.2297762713869247
-: 	Relative Error:0.004260072098006113
+: 	Mean:288.47468847134576
+: 	Error:-0.2003017858637577
+: 	Relative Error:0.0006938660868587498
 
 *** Skewness
 
@@ -386,8 +386,8 @@ print(f"TRNG Skew {trng_skew}\nPRGN Skew {prng_skew}")
 #+END_SRC
 
 #+RESULTS:
-: TRNG Skew 0.009331361720193958
-: PRGN Skew -0.008607782982018574
+: TRNG Skew -0.006666057168653873
+: PRGN Skew 0.012074558199049776
 
 Value interpretation: positive skew means a heavier right tail while negative means a heavier left tail.
 
@@ -406,8 +406,8 @@ print(f"TRNG kurtosis:{trng_kurt}\nPRNG kurtosis:{prng_kurt}")
 #+END_SRC
 
 #+RESULTS:
-: TRNG kurtosis:-1.2208809271388628
-: PRNG kurtosis:-1.2001883944466163
+: TRNG kurtosis:-1.2071064267375555
+: PRNG kurtosis:-1.1922855725151227
 
 
 ** Testing with Pearson Chi Squared
@@ -470,14 +470,14 @@ plt.show()
 : === Pearson Chi-Square Test ===
 : 
 : TRNG:
-: 	Chi2 statistic: 54.07
-: 	p-value: 0.28694678040653177
+: 	Chi2 statistic: 52.95
+: 	p-value: 0.3242902798779264
 : 
 : PRNG:
-: 	Chi2 statistic: 36.94
-: 	p-value: 0.8973627212015329
+: 	Chi2 statistic: 36.66
+: 	p-value: 0.9033605321967894
 : Saving figure chi_square
-[[file:./.ob-jupyter/2352f2aa84c6e63335c86c7d808adbc62658f530.png]]
+[[file:./.ob-jupyter/2ba1e86079fe4e5831a6dcd2172119bb4a62247b.png]]
 :END:
 
 
@@ -521,10 +521,10 @@ plt.show()
 :RESULTS:
 : === Wasserstein Distance ===
 : 
-: TRNG: 2.7997448144814596
-: PRNG: 1.9957236323632586
+: TRNG: 3.8012071407140984
+: PRNG: 2.645726472647242
 : Saving figure wasserstein
-[[file:./.ob-jupyter/41137374a32fd5cd9ac379e6acd6ea6d2342f838.png]]
+[[file:./.ob-jupyter/e64f6d4f7aa31d3ed159b90f14c6816338edd1f6.png]]
 :END:
 
 

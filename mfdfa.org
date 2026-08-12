@@ -180,30 +180,13 @@ plt.show()
 #+RESULTS:
 :RESULTS:
 : (30, 40)
-[[file:./.ob-jupyter/6d5923f2acac790f157df56bbda5728dc4496d17.png]]
+[[file:./.ob-jupyter/b0e44f41de00f3e8ce927ef18db803c0eee2a2e7.png]]
 :END:
 
 
-#+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
-
-
-lag = np.logspace(0.7, 4, 30).astype(int)
-
-# q values (moments)
-# Select a list of powers q
-q_list = np.linspace(-10,10,41)
-q_list = q_list[q_list!=0.0]
-order = 2
-# Compute MFDFA
-lag_t, dfa_t = MFDFA(trng, lag = lag, q = q_list, order = order)
-lag_p, dfa_p = MFDFA(prng, lag = lag, q = q_list, order = order)
-
-#+END_SRC
-
-#+RESULTS:
 
 #+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
-print(f"{dfa_t.shape}")
+print(f"{dfa_p.shape}")
 # Selected q values
 q_selected = [-10, -5, -2, 2, 5, 10]
 
@@ -261,7 +244,7 @@ plt.show()
 #+RESULTS:
 :RESULTS:
 : (30, 40)
-[[file:./.ob-jupyter/27ee5d2c8a813c81799ea58d5bdc627e55b2a327.png]]
+[[file:./.ob-jupyter/b6905d4a9e90f97e767122ef4a8b9637ab1877a9.png]]
 :END:
 
 
