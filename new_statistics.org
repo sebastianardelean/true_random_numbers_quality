@@ -1,0 +1,356 @@
+#+PROPERTY: header-args:python :kernel tutorials :async yes :results output :exports both
+#+PROPERTY: header-args:python :session hello
+#+PROPERTY: header-args:python+ :async yes
+
+
+* New statistics
+
+#+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
+import os
+import pandas as pd
+import seaborn as sns
+from scipy import stats
+from scipy.stats import skew, kurtosis, wasserstein_distance, chisquare, norm
+import matplotlib.pyplot as plt
+from collections import deque
+import numpy as np
+import requests as re
+from ast import literal_eval
+
+#+END_SRC
+
+#+RESULTS:
+
+
+#+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
+PROJECT_ROOT_DIR = "./."
+BASE_IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images")
+os.makedirs(BASE_IMAGES_PATH, exist_ok = True)
+
+def save_figure(fig_id, image_path, tight_layout = True, fig_extension = "png", resolution = 300):
+    path = os.path.join(image_path, fig_id + "." + fig_extension)
+    print(f"Saving figure {fig_id}")
+    if tight_layout:
+        plt.tight_layout()
+    plt.savefig(path, format = fig_extension, dpi = resolution)
+#+END_SRC
+
+#+RESULTS:
+
+** Project setup
+
+#+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
+class Qrng:
+    def __init__(self, domain) -> None:
+        self.__domain = domain
+        self.__api_int = "https://{}/api/2.0/int".format(self.__domain)
+        self.__api_bytes ="https://{}/api/2.0/streambytes".format(self.__domain)
+
+    def qrand_int(self, low, hi, samples) -> list[int]:
+        session = re.Session()
+        payload = {"min": low, "max": hi, "quantity": samples}
+        response = session.get(self.__api_int, params = payload)
+        res = literal_eval(response.text)
+        return res
+
+    def qrand_bytes(self, size) -> bytes:
+        session = re.session()
+        payload = {"size": size}
+        response = session.get(self.__api_bytes, params = payload)
+        
+        return response.content
+
+def qrandbytes(size=1024) -> bytes:
+    qrng = Qrng("random.cs.upt.ro")
+    values = qrng.qrand_bytes(size)
+    return values
+    
+def qrandint(l, h, n, pool_size = 100000) -> np.array:
+    if not hasattr(qrandint, "ivalues"):
+       qrandint.ivalues = {}
+
+    key = str(l) + str(h)
+    if key in qrandint.ivalues:
+        # found the key
+        values = qrandint.ivalues[key]
+        if len(values) == 0 or len(values) < n:
+            qrng = Qrng("random.cs.upt.ro")
+            values = qrng.qrand_int(l, h, (n + pool_size))
+            qrandint.ivalues[key] += values
+        else:
+            pass
+    else:
+        qrng = Qrng("random.cs.upt.ro")
+        qrandint.ivalues[key] = qrng.qrand_int(l, h, (n + pool_size))
+
+    outvals = qrandint.ivalues[key][:n]
+    del qrandint.ivalues[key][:n]
+    return np.array(outvals, dtype = np.uint32)
+#+END_SRC
+
+#+RESULTS:
+
+
+#+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
+BYTE_STREAM_SIZE = 1024
+#+END_SRC
+
+#+RESULTS:
+
+** Binary values
+
+#+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
+trng_bytes = qrandbytes(BYTE_STREAM_SIZE)
+rng = np.random.default_rng()
+prng_bytes = rng.integers(0,256, size=BYTE_STREAM_SIZE, dtype = np.uint8).tobytes()
+
+#+END_SRC
+
+#+RESULTS:
+
+** Bit frequency
+
+#+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
+
+def bytes_to_bits(data: bytes) -> np.ndarray:
+    return np.unpackbits(np.frombuffer(data, dtype = np.uint8))
+
+
+def bit_frequency(data: bytes) -> dict:
+    bits = bytes_to_bits(data)
+    counts = np.bincount(bits)
+    return {"0": int(counts[0]), "1": int(counts[1])}
+
+
+
+
+prng_bit_freq = bit_frequency(prng_bytes)
+prng_bit_stream_len = len(bytes_to_bits(prng_bytes))
+
+trng_bit_freq = bit_frequency(trng_bytes)
+trng_bit_stream_len = len(bytes_to_bits(trng_bytes))
+print(f"PRNG bit frequency: {prng_bit_freq}")
+print(f"PRNG fraction of 1s: {prng_bit_freq['1']/prng_bit_stream_len}")
+print(f"TRNG bit frequency: {trng_bit_freq}")
+print(f"TRNG fraction of 1s: {trng_bit_freq['1']/trng_bit_stream_len}")
+#+END_SRC
+
+#+RESULTS:
+: PRNG bit frequency: {'0': 4163, '1': 4029}
+: PRNG fraction of 1s: 0.4918212890625
+: TRNG bit frequency: {'0': 4136, '1': 4056}
+: TRNG fraction of 1s: 0.4951171875
+
+#+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
+streams = {
+    "PRNG": (prng_bit_freq, prng_bit_stream_len),
+    "TRNG": (trng_bit_freq, trng_bit_stream_len),
+}
+
+fig, axes = plt.subplots(1, 2, figsize = (10, 4))
+x = np.arange(2)
+for ax, (name, (freq, bit_len)) in zip(axes, streams.items()):
+    observed = [freq["0"], freq["1"]]
+    expected = [bit_len / 2, bit_len / 2]
+    chi2_stat, p_value = chisquare(observed, expected)
+    print(f"{name}: chi2 = {chi2_stat:.4f}, p-value = {p_value:.4f}")
+    ax.bar(x - 0.2, observed, 0.4, label = "observed")
+    ax.bar(x + 0.2, expected, 0.4, label = "expected")
+    ax.set_xticks(x)
+    ax.set_xticklabels(["0", "1"])
+    ax.set_ylim(0, bit_len * 1.15)
+    ax.set_title(name)
+    ax.legend()
+
+save_figure("bit_chisquare", BASE_IMAGES_PATH)
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: PRNG: chi2 = 2.1919, p-value = 0.1387
+: TRNG: chi2 = 0.7812, p-value = 0.3768
+: Saving figure bit_chisquare
+[[file:./.ob-jupyter/3c39f2d493af6022014f260d3ce32a9d0656d819.png]]
+:END:
+
+#+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
+NUM_REPETITIONS = 200
+
+prng_p_values = []
+trng_p_values = []
+
+for _ in range(NUM_REPETITIONS):
+
+    trng_bytes = qrandbytes(BYTE_STREAM_SIZE)
+    rng = np.random.default_rng()
+    prng_bytes = rng.integers(0,256, size=BYTE_STREAM_SIZE, dtype = np.uint8).tobytes()
+
+    
+    prng_bit_freq = bit_frequency(prng_bytes)
+    prng_bit_stream_len = len(bytes_to_bits(prng_bytes))
+
+    trng_bit_freq = bit_frequency(trng_bytes)
+    trng_bit_stream_len = len(bytes_to_bits(trng_bytes))
+
+    streams = {
+        "PRNG": (prng_bit_freq, prng_bit_stream_len),
+        "TRNG": (trng_bit_freq, trng_bit_stream_len),
+    }
+
+    for name, (freq, bit_len) in streams.items(): 
+        observed = [freq["0"], freq["1"]]
+        expected = [bit_len / 2, bit_len / 2]      
+        _, p_value = chisquare(observed, expected)
+        (prng_p_values if name == "PRNG" else trng_p_values).append(p_value)
+
+fix, ax = plt.subplots()
+ax.hist([prng_p_values, trng_p_values], bins = 20, label = ["PRNG", "TRNG"], alpha = 0.7)
+ax.set_xlabel("p-value")
+ax.set_ylabel("frequency")
+ax.set_title(f"Bit chi-square p-values over {NUM_REPETITIONS} repetitions")
+ax.legend()
+save_figure("bit_pvalue_histogram", BASE_IMAGES_PATH)
+
+print(f"PRNG mean p-value: {np.mean(prng_p_values):.4f}, std: {np.std(prng_p_values):.4f} {np.mean(np.array(prng_p_values) < 0.05)}")
+print(f"TRNG mean p-value: {np.mean(trng_p_values):.4f}, std: {np.std(trng_p_values):.4f} {np.mean(np.array(trng_p_values) < 0.05)}")
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: Saving figure bit_pvalue_histogram
+: PRNG mean p-value: 0.5225, std: 0.2934 0.055
+: TRNG mean p-value: 0.5123, std: 0.2981 0.065
+[[file:./.ob-jupyter/91ab69f110a4da6d605d3bb0a979fc35a85116b0.png]]
+:END:
+
+
+#+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
+def autocorr(x, lag):
+    return np.corrcoef(x[:-lag], x[lag:])[0, 1]
+
+trng_bytes = qrandbytes(BYTE_STREAM_SIZE)
+rng = np.random.default_rng()
+prng_bytes = rng.integers(0, 256, size = BYTE_STREAM_SIZE, dtype = np.uint8).tobytes()
+
+lags = [1, 2, 4, 8, 16, 32,64]
+bits = 2.0 * bytes_to_bits(prng_bytes).astype(np.float64) - 1.0
+prng_acf = []
+print("PRNG:")
+for lag in lags:
+    value = autocorr(bits, lag)
+    prng_acf.append(value)
+    print(lag, f"{value:.4f}")
+
+bits = 2.0 * bytes_to_bits(trng_bytes).astype(np.float64) - 1.0
+trng_acf = []
+print("TRNG:")
+for lag in lags:
+    value = autocorr(bits, lag)
+    trng_acf.append(value)
+    print(lag, f"{value:.4f}")
+
+fig, ax = plt.subplots(figsize = (10, 5))
+ax.axhline(0, color = "gray", lw = 0.8)
+ax.plot(lags, prng_acf, marker = "o", label = "PRNG")
+ax.plot(lags, trng_acf, marker = "o", label = "TRNG")
+ax.set_xlabel("lag (bits)")
+ax.set_ylabel("autocorrelation")
+ax.set_title("Bit autocorrelation")
+ax.legend()
+save_figure("bit_autocorrelation", BASE_IMAGES_PATH)
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+#+begin_example
+PRNG:
+1 -0.0121
+2 0.0012
+4 -0.0183
+8 0.0005
+16 0.0007
+32 0.0169
+64 0.0088
+TRNG:
+1 -0.0084
+2 -0.0007
+4 -0.0073
+8 0.0012
+16 0.0007
+32 -0.0194
+64 -0.0108
+Saving figure bit_autocorrelation
+#+end_example
+[[file:./.ob-jupyter/828799c2718c05411987b02e65702b5458ed4831.png]]
+:END:
+*** NIST STS
+
+#+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
+import nistrng
+
+NIST_BIT_COUNT = 1_000_000
+NIST_BYTE_COUNT = NIST_BIT_COUNT // 8
+NIST_CHUNK = 65536
+
+import nistrng
+
+NIST_BIT_COUNT = 1_000_000
+NIST_BYTE_COUNT = NIST_BIT_COUNT // 8
+NIST_CHUNK = 65536
+
+def bits_from_bytes(data: bytes) -> np.ndarray:
+    return np.unpackbits(np.frombuffer(data, dtype = np.uint8)).astype(np.int8)
+
+def qrandbytes_chunked(total_bytes, chunk = NIST_CHUNK) -> bytes:
+    chunks = []
+    remaining = total_bytes
+    while remaining > 0:
+        n = min(chunk, remaining)
+        chunks.append(qrandbytes(n))
+        remaining -= n
+    return b"".join(chunks)
+
+nist_results = {}
+for name in ("PRNG", "TRNG"):
+    if name == "TRNG":
+        stream = qrandbytes_chunked(NIST_BYTE_COUNT)
+    else:
+        rng = np.random.default_rng()
+        stream = rng.integers(0, 256, size = NIST_BYTE_COUNT, dtype = np.uint8).tobytes()
+    bits = bits_from_bytes(stream)
+
+    eligible = nistrng.check_eligibility_all_battery(bits, nistrng.SP800_22R1A_BATTERY)
+    results = nistrng.run_all_battery(bits, eligible, False)
+    nist_results[name] = results
+    print(f"=== {name} ===")
+    for result, elapsed in results:
+        print(f"{result.name}: p = {result.score:.4f}, passed = {result.passed} ({elapsed} ms)")
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+d:\Soft\miniconda3\envs\statistics\Lib\site-packages\nistrng\sp800_22r1a\test_cumulative_sums.py:55: RuntimeWarning: overflow encountered in scalar absolute
+  forward_max = max(abs(forward_sum), forward_max)
+d:\Soft\miniconda3\envs\statistics\Lib\site-packages\nistrng\sp800_22r1a\test_cumulative_sums.py:53: RuntimeWarning: overflow encountered in scalar add
+  forward_sum += bits_copy[i]
+d:\Soft\miniconda3\envs\statistics\Lib\site-packages\nistrng\sp800_22r1a\test_cumulative_sums.py:56: RuntimeWarning: overflow encountered in scalar absolute
+  backward_max = max(abs(backward_sum), backward_max)
+d:\Soft\miniconda3\envs\statistics\Lib\site-packages\nistrng\sp800_22r1a\test_cumulative_sums.py:54: RuntimeWarning: overflow encountered in scalar add
+  backward_sum += bits_copy[bits_copy.size - 1 - i]
+=== PRNG ===
+Monobit: p = 0.1688, passed = True (0 ms)
+Frequency Within Block: p = 0.4297, passed = True (0 ms)
+Runs: p = 0.3898, passed = True (245 ms)
+Longest Run Ones In A Block: p = 0.2688, passed = True (113 ms)
+Binary Matrix Rank: p = 0.2235, passed = True (1719 ms)
+Discrete Fourier Transform: p = 0.0000, passed = False (64 ms)
+Non Overlapping Template Matching: p = 0.0194, passed = True (2084 ms)
+Maurers Universal: p = 0.0100, passed = False (635 ms)
+Linear Complexity: p = 0.0000, passed = False (171601 ms)
+Serial: p = 0.0000, passed = False (76499 ms)
+Approximate Entropy: p = 0.0000, passed = False (30556 ms)
+Cumulative Sums: p = 1.0000, passed = True (1302 ms)
+Random Excursion: p = 0.6831, passed = False (6252 ms)
+Random Excursion Variant: p = 0.1703, passed = True (24 ms)
+#+end_example
+
