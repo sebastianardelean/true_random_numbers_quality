@@ -105,149 +105,81 @@ prng = np.random.randint(RANGE_MIN, RANGE_MAX + 1, size = ARRAY_SIZE)
 
 #+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
 
-
 lag = np.logspace(0.7, 4, 30).astype(int)
-
-# q values (moments)
-# Select a list of powers q
-q_list = np.linspace(-10,10,41)
-q_list = q_list[q_list!=0.0]
+q_list = np.linspace(-10, 10, 41)
+q_list = q_list[q_list != 0.0]
 order = 2
-# Compute MFDFA
-lag_t, dfa_t = MFDFA(trng, lag = lag, q = q_list, order = order)
-lag_p, dfa_p = MFDFA(prng, lag = lag, q = q_list, order = order)
 
-#+END_SRC
+lag_t, dfa_t = MFDFA(trng, lag=lag, q=q_list, order=order)
+lag_p, dfa_p = MFDFA(prng, lag=lag, q=q_list, order=order)
 
-#+RESULTS:
+from scipy.stats import linregress
 
-#+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
-print(f"{dfa_t.shape}")
-# Selected q values
+def extract_hq(lag, dfa):
+    log_lag = np.log(lag)
+    return np.array([linregress(log_lag, np.log(dfa[:, i])).slope for i in range(dfa.shape[1])])
+
+hq_trng = extract_hq(lag_t, dfa_t)
+hq_prng = extract_hq(lag_p, dfa_p)
+
 q_selected = [-10, -5, -2, 2, 5, 10]
 
-fig, ax = plt.subplots(figsize=(8, 6))
-
-# Plot MFDFA curves
-for q in q_selected:
-    idx = np.where(q_list == q)[0][0]
-    ax.loglog(lag_t, dfa_t[:, idx], label=f"q = {q}")
-
-# ------------------------------------------------------------------
-# Theoretical slope for q = -10: h(q) = 1/alpha = 1/1.5
-# ------------------------------------------------------------------
-alpha = 1.5
-h_neg10 = 1 / alpha
-
-idx_neg10 = np.where(q_list == -10)[0][0]
-ref_x = lag_t
-ref_y = dfa_t[0, idx_neg10] * (ref_x / lag_t[0])**h_neg10
-
-ax.loglog(
-    ref_x,
-    ref_y,
-    "k--",
-    linewidth=2,
-    label=rf"Theory $q=-10$, slope={h_neg10:.3f}"
-)
-
-# ------------------------------------------------------------------
-# Theoretical slope for q = 10: h(q) = 1/q = 1/10
-# ------------------------------------------------------------------
-h_pos10 = 1 / 10
-
-idx_pos10 = np.where(q_list == 10)[0][0]
-ref_y = dfa_t[0, idx_pos10] * (ref_x / lag_t[0])**h_pos10
-
-ax.loglog(
-    ref_x,
-    ref_y,
-    "k:",
-    linewidth=2,
-    label=rf"Theory $q=10$, slope={h_pos10:.3f}"
-)
-
-ax.set_xlabel(r"$s$")
-ax.set_ylabel(r"$F_q(s)$")
-ax.set_title("MFDFA")
-ax.legend()
-ax.grid(True, which="both", ls=":")
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+for ax, (name, lag, dfa) in zip(axes, [("TRNG", lag_t, dfa_t), ("PRNG", lag_p, dfa_p)]):
+    for q in q_selected:
+        idx = np.where(q_list == q)[0][0]
+        ax.loglog(lag, dfa[:, idx], label=f"q = {q}")
+    idx_ref = np.where(q_list == q_selected[0])[0][0]
+    ref_y = dfa[0, idx_ref] * (lag / lag[0]) ** 0.5
+    ax.loglog(lag, ref_y, "k--", lw=1.5, label="h = 0.5 (white noise)")
+    ax.set_xlabel("s")
+    ax.set_ylabel(r"$F_q(s)$")
+    ax.set_title(f"{name} — MFDFA")
+    ax.legend(fontsize=8)
+    ax.grid(True, which="both", ls=":")
 plt.tight_layout()
 plt.show()
 
+fig, ax = plt.subplots(figsize=(8, 5))
+ax.plot(q_list, hq_trng, "o-", label="TRNG")
+ax.plot(q_list, hq_prng, "s-", label="PRNG")
+ax.axhline(0.5, color="gray", ls="--", lw=1.5, label="White noise (h = 0.5)")
+ax.set_xlabel("q")
+ax.set_ylabel("h(q)")
+ax.set_title("Generalized Hurst Exponent")
+ax.legend()
+ax.grid(alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+print(f"TRNG h(q) range: [{hq_trng.min():.3f}, {hq_trng.max():.3f}]")
+print(f"PRNG h(q) range: [{hq_prng.min():.3f}, {hq_prng.max():.3f}]")
+print(f"White noise reference: h(q) = 0.5 for all q")
 #+END_SRC
 
 #+RESULTS:
 :RESULTS:
-: (30, 40)
-[[file:./.ob-jupyter/b0e44f41de00f3e8ce927ef18db803c0eee2a2e7.png]]
+[[file:./.ob-jupyter/9809e30d02652c95ebc74b18bca9eee35e9f5d0e.png]]
+[[file:./.ob-jupyter/867fcba3adfee622c2f93aedb455839114294c08.png]]
+: TRNG h(q) range: [0.495, 0.680]
+: PRNG h(q) range: [0.444, 0.617]
+: White noise reference: h(q) = 0.5 for all q
 :END:
 
-
-
 #+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
-print(f"{dfa_p.shape}")
-# Selected q values
-q_selected = [-10, -5, -2, 2, 5, 10]
-
-fig, ax = plt.subplots(figsize=(8, 6))
-
-# Plot MFDFA curves
-for q in q_selected:
-    idx = np.where(q_list == q)[0][0]
-    ax.loglog(lag_p, dfa_p[:, idx], label=f"q = {q}")
-
-# ------------------------------------------------------------------
-# Theoretical slope for q = -10: h(q) = 1/alpha = 1/1.5
-# ------------------------------------------------------------------
-alpha = 1.5
-h_neg10 = 1 / alpha
-
-idx_neg10 = np.where(q_list == -10)[0][0]
-ref_x = lag_p
-ref_y = dfa_p[0, idx_neg10] * (ref_x / lag_p[0])**h_neg10
-
-ax.loglog(
-    ref_x,
-    ref_y,
-    "k--",
-    linewidth=2,
-    label=rf"Theory $q=-10$, slope={h_neg10:.3f}"
-)
-
-# ------------------------------------------------------------------
-# Theoretical slope for q = 10: h(q) = 1/q = 1/10
-# ------------------------------------------------------------------
-h_pos10 = 1 / 10
-
-idx_pos10 = np.where(q_list == 10)[0][0]
-ref_y = dfa_p[0, idx_pos10] * (ref_x / lag_p[0])**h_pos10
-
-ax.loglog(
-    ref_x,
-    ref_y,
-    "k:",
-    linewidth=2,
-    label=rf"Theory $q=10$, slope={h_pos10:.3f}"
-)
-
-ax.set_xlabel(r"$s$")
-ax.set_ylabel(r"$F_q(s)$")
-ax.set_title("MFDFA")
-ax.legend()
-ax.grid(True, which="both", ls=":")
-plt.tight_layout()
-plt.show()
-
+print(f"TRNG h(q) range: [{hq_trng.min():.3f}, {hq_trng.max():.3f}]")
+print(f"PRNG h(q) range: [{hq_prng.min():.3f}, {hq_prng.max():.3f}]")
+print(f"Mean |h(q) - 0.5| TRNG: {np.mean(np.abs(hq_trng - 0.5)):.4f}")
+print(f"Mean |h(q) - 0.5| PRNG: {np.mean(np.abs(hq_prng - 0.5)):.4f}")
 #+END_SRC
 
 #+RESULTS:
-:RESULTS:
-: (30, 40)
-[[file:./.ob-jupyter/b6905d4a9e90f97e767122ef4a8b9637ab1877a9.png]]
-:END:
+: TRNG h(q) range: [0.495, 0.680]
+: PRNG h(q) range: [0.444, 0.617]
+: Mean |h(q) - 0.5| TRNG: 0.0673
+: Mean |h(q) - 0.5| PRNG: 0.0511
 
 
 ** Conclusion
 
-Applying multifractal detrended fluctuation analysis confirms that both TRNG and PRNG sequences exhibit behavior consistent with uncorrelated white noise, showing no significant long-range dependencies or multifractal structure. Consequently, this method does not provide additional discriminatory power between the two generators.
+The generalized Hurst exponent h(q) should equal 0.5 for all q if the signal is uncorrelated white noise. Both TRNG and PRNG sequences produce h(q) spectra closely clustered around 0.5, confirming they behave as uncorrelated white noise with no significant long-range dependencies or multifractal structure. The MFDFA method does not provide additional discriminatory power between the two generators.
