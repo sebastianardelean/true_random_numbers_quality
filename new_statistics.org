@@ -10,7 +10,7 @@ import os
 import pandas as pd
 import seaborn as sns
 from scipy import stats
-from scipy.stats import skew, kurtosis, wasserstein_distance, chisquare, norm, kstest
+from scipy.stats import skew, kurtosis, wasserstein_distance, chisquare, norm
 import matplotlib.pyplot as plt
 from collections import deque
 import numpy as np
@@ -136,10 +136,10 @@ print(f"TRNG fraction of 1s: {trng_bit_freq['1']/trng_bit_stream_len}")
 #+END_SRC
 
 #+RESULTS:
-: PRNG bit frequency: {'0': 409401, '1': 409799}
-: PRNG fraction of 1s: 0.500242919921875
-: TRNG bit frequency: {'0': 409898, '1': 409302}
-: TRNG fraction of 1s: 0.49963623046875
+: PRNG bit frequency: {'0': 409649, '1': 409551}
+: PRNG fraction of 1s: 0.499940185546875
+: TRNG bit frequency: {'0': 409569, '1': 409631}
+: TRNG fraction of 1s: 0.500037841796875
 
 #+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
 streams = {
@@ -167,8 +167,8 @@ save_figure("bit_chisquare", BASE_IMAGES_PATH)
 
 #+RESULTS:
 :RESULTS:
-: PRNG: chi2 = 0.1934, p-value = 0.6601
-: TRNG: chi2 = 0.4336, p-value = 0.5102
+: PRNG: chi2 = 0.0117, p-value = 0.9138
+: TRNG: chi2 = 0.0047, p-value = 0.9454
 : Saving figure bit_chisquare
 [[file:./.ob-jupyter/89498be4d8322ca3e9480c0127b4b18060b15ac7.png]]
 :END:
@@ -303,12 +303,18 @@ def shannon_entropy(data: bytes) -> float:
     probs = probs[probs > 0]
     return -np.sum(probs * np.log2(probs))
 
+def serial_correlation(data: np.ndarray) -> float:
+    x, y = data[:-1].astype(float), data[1:].astype(float)
+    if len(x) < 2:
+        return 0.0
+    return np.corrcoef(x, y)[0, 1]
+
 NUM_BYTE_TESTS = 200
 
 prng_chi2_pvalues = []
 trng_chi2_pvalues = []
-prng_ks_pvalues = []
-trng_ks_pvalues = []
+prng_sc_values = []
+trng_sc_values = []
 prng_entropies = []
 trng_entropies = []
 
@@ -325,8 +331,8 @@ for _ in range(NUM_BYTE_TESTS):
         _, p = chisquare(observed, expected)
         (prng_chi2_pvalues if name == "PRNG" else trng_chi2_pvalues).append(p)
 
-        _, p = kstest(data.astype(float) / 256.0, "uniform")
-        (prng_ks_pvalues if name == "PRNG" else trng_ks_pvalues).append(p)
+        r = serial_correlation(data)
+        (prng_sc_values if name == "PRNG" else trng_sc_values).append(r)
 
         h = shannon_entropy(stream)
         (prng_entropies if name == "PRNG" else trng_entropies).append(h)
@@ -335,9 +341,9 @@ print("=== Byte Chi-squared ===")
 print(f"PRNG mean p-value: {np.mean(prng_chi2_pvalues):.4f}, fail rate: {np.mean(np.array(prng_chi2_pvalues) < 0.05):.2%}")
 print(f"TRNG mean p-value: {np.mean(trng_chi2_pvalues):.4f}, fail rate: {np.mean(np.array(trng_chi2_pvalues) < 0.05):.2%}")
 
-print("=== Kolmogorov-Smirnov ===")
-print(f"PRNG mean p-value: {np.mean(prng_ks_pvalues):.4f}, fail rate: {np.mean(np.array(prng_ks_pvalues) < 0.05):.2%}")
-print(f"TRNG mean p-value: {np.mean(trng_ks_pvalues):.4f}, fail rate: {np.mean(np.array(trng_ks_pvalues) < 0.05):.2%}")
+print("=== Serial Correlation (r between consecutive bytes) ===")
+print(f"PRNG mean r: {np.mean(prng_sc_values):.6f}, std: {np.std(prng_sc_values):.6f}")
+print(f"TRNG mean r: {np.mean(trng_sc_values):.6f}, std: {np.std(trng_sc_values):.6f}")
 
 print("=== Shannon Entropy (max 8.0 bits) ===")
 print(f"PRNG mean: {np.mean(prng_entropies):.4f}, std: {np.std(prng_entropies):.4f}")
@@ -350,9 +356,10 @@ axes[0].set_title("Byte Chi-squared p-values")
 axes[0].set_xlabel("p-value")
 axes[0].legend()
 
-axes[1].hist([prng_ks_pvalues, trng_ks_pvalues], bins=20, label=["PRNG", "TRNG"], alpha=0.7)
-axes[1].set_title("KS Test p-values")
-axes[1].set_xlabel("p-value")
+axes[1].hist([prng_sc_values, trng_sc_values], bins=20, label=["PRNG", "TRNG"], alpha=0.7)
+axes[1].axvline(0, color="gray", ls="--", lw=1)
+axes[1].set_title("Serial Correlation")
+axes[1].set_xlabel("r")
 axes[1].legend()
 
 axes[2].hist([prng_entropies, trng_entropies], bins=20, label=["PRNG", "TRNG"], alpha=0.7)
@@ -368,17 +375,17 @@ save_figure("byte_level_tests", BASE_IMAGES_PATH)
 :RESULTS:
 #+begin_example
 === Byte Chi-squared ===
-PRNG mean p-value: 0.4901, fail rate: 5.50%
-TRNG mean p-value: 0.5084, fail rate: 6.50%
-=== Kolmogorov-Smirnov ===
-PRNG mean p-value: 0.0099, fail rate: 97.00%
-TRNG mean p-value: 0.0089, fail rate: 99.00%
+PRNG mean p-value: 0.5002, fail rate: 6.00%
+TRNG mean p-value: 0.5269, fail rate: 6.50%
+=== Serial Correlation (r between consecutive bytes) ===
+PRNG mean r: -0.000066, std: 0.002952
+TRNG mean r: -0.000159, std: 0.003007
 === Shannon Entropy (max 8.0 bits) ===
 PRNG mean: 7.9982, std: 0.0002
 TRNG mean: 7.9982, std: 0.0002
 Saving figure byte_level_tests
 #+end_example
-[[file:./.ob-jupyter/4b74ea4b41e859d7db6d96811cfd01ac56e9851c.png]]
+[[file:./.ob-jupyter/4f53f035498070e3c0968c90f30ace69c899ed97.png]]
 :END:
 *** NIST STS
 
@@ -413,29 +420,29 @@ for name in ("PRNG", "TRNG"):
 ======================================================================
   PRNG
 ======================================================================
-  125,000 bytes = 1,000,000 bits (0.1s)
+  125,000 bytes = 1,000,000 bits (0.2s)
 
   --- NIST SP 800-22 Tests ---
-  [PASS] 01 Monobit Frequency: p = 0.802587  (0.1s)
-  [PASS] 02 Block Frequency (M=128): p = 0.433215  (0.0s)
-  [PASS] 03 Runs Test: p = 0.700932  (0.1s)
-  [PASS] 04 Longest Run of Ones: p = 0.854537  (0.1s)
-  [PASS] 05 Cumulative Sums (fwd): p = 0.917121  (0.1s)
-  [PASS] 06 Cumulative Sums (bwd): p = 0.972191  (0.1s)
-  [PASS] 07 Approximate Entropy (m=10): p = 0.136739  (2.7s)
-  [PASS] 08 Serial Test (m=16) (1): p = 0.306695  (8.6s)
-  [PASS] 08 Serial Test (m=16) (2): p = 0.728930  (8.6s)
-  [PASS] 09 Maurer Universal: p = 0.021395  (0.3s)
-  [PASS] 10 DFT/Spectral: p = 0.108294  (0.2s)
-  [PASS] 11 Binary Matrix Rank: p = 0.408469  (2.3s)
-  [PASS] 12 Non-Overlapping Template: p = 0.735773  (0.6s)
-  [PASS] 13 Linear Complexity (M=500): p = 0.674105  (39.1s)
+  [PASS] 01 Monobit Frequency: p = 0.495239  (0.1s)
+  [PASS] 02 Block Frequency (M=128): p = 0.668165  (0.0s)
+  [PASS] 03 Runs Test: p = 0.669769  (0.2s)
+  [PASS] 04 Longest Run of Ones: p = 0.786113  (0.1s)
+  [PASS] 05 Cumulative Sums (fwd): p = 0.879009  (0.2s)
+  [PASS] 06 Cumulative Sums (bwd): p = 0.552714  (0.2s)
+  [PASS] 07 Approximate Entropy (m=10): p = 0.961092  (3.5s)
+  [PASS] 08 Serial Test (m=16) (1): p = 0.981401  (10.4s)
+  [PASS] 08 Serial Test (m=16) (2): p = 0.967926  (10.4s)
+  [PASS] 09 Maurer Universal: p = 0.188237  (0.3s)
+  [PASS] 10 DFT/Spectral: p = 0.956091  (0.2s)
+  [PASS] 11 Binary Matrix Rank: p = 0.298102  (2.4s)
+  [PASS] 12 Non-Overlapping Template: p = 0.133880  (0.5s)
+  [PASS] 13 Linear Complexity (M=500): p = 0.591668  (49.3s)
 
   --- Supplementary Tests ---
-  [PASS] 14 Chi-Squared Byte: p = 0.499152  (0.0s)
+  [PASS] 14 Chi-Squared Byte: p = 0.652694  (0.0s)
   [INFO] 15 Compression Ratio: 1.000368  (0.0s)
-  [PASS] 16 Serial Correlation: r = +0.003295
-  [PASS] 17 Shannon Entropy: 7.998523 bits/byte
+  [PASS] 16 Serial Correlation: r = +0.002635
+  [PASS] 17 Shannon Entropy: 7.998582 bits/byte
 
   === SUMMARY: 17/17 tests passed ===
       No anomalies detected.
@@ -446,28 +453,97 @@ for name in ("PRNG", "TRNG"):
   125,000 bytes = 1,000,000 bits (0.2s)
 
   --- NIST SP 800-22 Tests ---
-  [PASS] 01 Monobit Frequency: p = 0.283720  (0.1s)
-  [PASS] 02 Block Frequency (M=128): p = 0.269732  (0.0s)
-  [PASS] 03 Runs Test: p = 0.067677  (0.2s)
-  [PASS] 04 Longest Run of Ones: p = 0.750123  (0.1s)
-  [PASS] 05 Cumulative Sums (fwd): p = 0.409311  (0.3s)
-  [PASS] 06 Cumulative Sums (bwd): p = 0.353290  (0.3s)
-  [PASS] 07 Approximate Entropy (m=10): p = 0.843013  (4.9s)
-  [PASS] 08 Serial Test (m=16) (1): p = 0.585293  (9.3s)
-  [PASS] 08 Serial Test (m=16) (2): p = 0.139053  (9.3s)
-  [PASS] 09 Maurer Universal: p = 0.627540  (0.3s)
-  [PASS] 10 DFT/Spectral: p = 0.748072  (0.2s)
-  [PASS] 11 Binary Matrix Rank: p = 0.983978  (2.3s)
-  [PASS] 12 Non-Overlapping Template: p = 0.550459  (0.5s)
-  [PASS] 13 Linear Complexity (M=500): p = 0.435967  (38.0s)
+  [PASS] 01 Monobit Frequency: p = 0.371322  (0.1s)
+  [PASS] 02 Block Frequency (M=128): p = 0.304334  (0.0s)
+  [PASS] 03 Runs Test: p = 0.765093  (0.2s)
+  [PASS] 04 Longest Run of Ones: p = 0.887166  (0.1s)
+  [PASS] 05 Cumulative Sums (fwd): p = 0.629223  (0.2s)
+  [PASS] 06 Cumulative Sums (bwd): p = 0.459642  (0.3s)
+  [PASS] 07 Approximate Entropy (m=10): p = 0.033828  (6.0s)
+  [PASS] 08 Serial Test (m=16) (1): p = 0.394194  (13.1s)
+  [PASS] 08 Serial Test (m=16) (2): p = 0.766336  (13.1s)
+  [PASS] 09 Maurer Universal: p = 0.484441  (0.3s)
+  [PASS] 10 DFT/Spectral: p = 0.613759  (0.3s)
+  [PASS] 11 Binary Matrix Rank: p = 0.145095  (2.6s)
+  [PASS] 12 Non-Overlapping Template: p = 0.198480  (0.6s)
+  [PASS] 13 Linear Complexity (M=500): p = 0.321032  (55.6s)
 
   --- Supplementary Tests ---
-  [PASS] 14 Chi-Squared Byte: p = 0.221745  (0.0s)
+  [PASS] 14 Chi-Squared Byte: p = 0.386146  (0.0s)
   [INFO] 15 Compression Ratio: 1.000368  (0.0s)
-  [PASS] 16 Serial Correlation: r = -0.000242
-  [PASS] 17 Shannon Entropy: 7.998423 bits/byte
+  [PASS] 16 Serial Correlation: r = +0.000774
+  [PASS] 17 Shannon Entropy: 7.998489 bits/byte
 
   === SUMMARY: 17/17 tests passed ===
       No anomalies detected.
 #+end_example
+
+#+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
+test_names = []
+prng_pvals = []
+trng_pvals = []
+prng_pass = []
+trng_pass = []
+
+for key in nist_results["PRNG"]:
+    r = nist_results["PRNG"][key]
+    if "p_value" in r:
+        test_names.append(key)
+        prng_pvals.append(r["p_value"])
+        prng_pass.append(r["passed"])
+        trng_pvals.append(nist_results["TRNG"][key]["p_value"])
+        trng_pass.append(nist_results["TRNG"][key]["passed"])
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+y = np.arange(len(test_names))
+axes[0].barh(y - 0.2, prng_pvals, 0.4, label="PRNG", alpha=0.8)
+axes[0].barh(y + 0.2, trng_pvals, 0.4, label="TRNG", alpha=0.8)
+axes[0].axvline(0.01, color="red", ls="--", lw=1, label="p = 0.01 threshold")
+axes[0].set_yticks(y)
+axes[0].set_yticklabels(test_names, fontsize=8)
+axes[0].set_xlabel("p-value")
+axes[0].set_title("NIST SP 800-22 p-values")
+axes[0].legend(fontsize=8)
+axes[0].invert_yaxis()
+
+prng_passed = sum(prng_pass)
+trng_passed = sum(trng_pass)
+total = len(test_names)
+axes[0].set_xlim(0, 1)
+axes[0].text(0.95, -1, f"PRNG: {prng_passed}/{total}  TRNG: {trng_passed}/{total}",
+             transform=axes[0].transAxes, ha="right", va="top", fontsize=10, fontweight="bold")
+
+labels = [name.split(" ", 1)[1] if " " in name else name for name in test_names]
+x = np.arange(len(labels))
+width = 0.35
+axes[1].bar(x - width/2, [1 if p else 0 for p in prng_pass], width, label="PRNG", alpha=0.8)
+axes[1].bar(x + width/2, [1 if p else 0 for p in trng_pass], width, label="TRNG", alpha=0.8)
+axes[1].set_xticks(x)
+axes[1].set_xticklabels(labels, rotation=70, ha="right", fontsize=7)
+axes[1].set_ylabel("Pass (1) / Fail (0)")
+axes[1].set_title("NIST SP 800-22 Pass/Fail")
+axes[1].legend(fontsize=8)
+
+plt.tight_layout()
+save_figure("nist_results", BASE_IMAGES_PATH)
+
+print(f"\nPRNG: {prng_passed}/{total} tests passed")
+print(f"TRNG: {trng_passed}/{total} tests passed")
+if prng_passed < total:
+    failed = [test_names[i] for i, p in enumerate(prng_pass) if not p]
+    print(f"PRNG failed: {', '.join(failed)}")
+if trng_passed < total:
+    failed = [test_names[i] for i, p in enumerate(trng_pass) if not p]
+    print(f"TRNG failed: {', '.join(failed)}")
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+: Saving figure nist_results
+: 
+: PRNG: 15/15 tests passed
+: TRNG: 15/15 tests passed
+[[file:./.ob-jupyter/4e2117fdb7f07eb9efc7d16f743f7c26163a94ba.png]]
+:END:
 
