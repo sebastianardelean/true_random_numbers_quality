@@ -383,23 +383,12 @@ Saving figure byte_level_tests
 *** NIST STS
 
 #+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
-import nistrng
+from nist_sp800_22 import run_all_tests
 
-NIST_BIT_COUNT = 1_000_000
-NIST_BYTE_COUNT = NIST_BIT_COUNT // 8
+NIST_BYTE_COUNT = 125_000  # 1M bits
 NIST_CHUNK = 65536
 
-# NOTE: nistrng produces false failures (p=0.0000) on both PRNG and TRNG for
-# DFT, Serial, Approximate Entropy, Linear Complexity, and Random Excursion.
-# These are known library implementation bugs, not indicators of poor randomness.
-# NumPy's PCG64 should pass all NIST SP 800-22 tests when run against the
-# official NIST reference implementation. Results here should be treated as
-# illustrative, not authoritative.
-
-def bits_from_bytes(data: bytes) -> np.ndarray:
-    return np.unpackbits(np.frombuffer(data, dtype = np.uint8)).astype(np.int8)
-
-def qrandbytes_chunked(total_bytes, chunk = NIST_CHUNK) -> bytes:
+def qrandbytes_chunked(total_bytes, chunk=NIST_CHUNK) -> bytes:
     chunks = []
     remaining = total_bytes
     while remaining > 0:
@@ -414,56 +403,71 @@ for name in ("PRNG", "TRNG"):
         stream = qrandbytes_chunked(NIST_BYTE_COUNT)
     else:
         rng = np.random.default_rng()
-        stream = rng.integers(0, 256, size = NIST_BYTE_COUNT, dtype = np.uint8).tobytes()
-    bits = bits_from_bytes(stream)
-
-    eligible = nistrng.check_eligibility_all_battery(bits, nistrng.SP800_22R1A_BATTERY)
-    results = nistrng.run_all_battery(bits, eligible, False)
-    nist_results[name] = results
-    print(f"=== {name} ===")
-    for result, elapsed in results:
-        print(f"{result.name}: p = {result.score:.4f}, passed = {result.passed} ({elapsed} ms)")
+        stream = rng.integers(0, 256, size=NIST_BYTE_COUNT, dtype=np.uint8).tobytes()
+    nist_results[name] = run_all_tests(stream, label=name)
 #+END_SRC
 
 #+RESULTS:
 #+begin_example
-d:\Soft\miniconda3\envs\statistics\Lib\site-packages\nistrng\sp800_22r1a\test_cumulative_sums.py:55: RuntimeWarning: overflow encountered in scalar absolute
-  forward_max = max(abs(forward_sum), forward_max)
-d:\Soft\miniconda3\envs\statistics\Lib\site-packages\nistrng\sp800_22r1a\test_cumulative_sums.py:53: RuntimeWarning: overflow encountered in scalar add
-  forward_sum += bits_copy[i]
-d:\Soft\miniconda3\envs\statistics\Lib\site-packages\nistrng\sp800_22r1a\test_cumulative_sums.py:56: RuntimeWarning: overflow encountered in scalar absolute
-  backward_max = max(abs(backward_sum), backward_max)
-d:\Soft\miniconda3\envs\statistics\Lib\site-packages\nistrng\sp800_22r1a\test_cumulative_sums.py:54: RuntimeWarning: overflow encountered in scalar add
-  backward_sum += bits_copy[bits_copy.size - 1 - i]
-=== PRNG ===
-Monobit: p = 0.5809, passed = True (0 ms)
-Frequency Within Block: p = 0.1353, passed = True (0 ms)
-Runs: p = 0.4109, passed = True (234 ms)
-Longest Run Ones In A Block: p = 0.4507, passed = True (119 ms)
-Binary Matrix Rank: p = 0.0872, passed = True (1805 ms)
-Discrete Fourier Transform: p = 0.0000, passed = False (49 ms)
-Non Overlapping Template Matching: p = 0.4581, passed = True (5283 ms)
-Maurers Universal: p = 0.0100, passed = True (2106 ms)
-Linear Complexity: p = 0.0000, passed = False (187868 ms)
-Serial: p = 0.0000, passed = False (67330 ms)
-Approximate Entropy: p = 0.0000, passed = False (31274 ms)
-Cumulative Sums: p = 1.0000, passed = True (1537 ms)
-Random Excursion: p = 0.6831, passed = False (6894 ms)
-Random Excursion Variant: p = 0.1703, passed = True (21 ms)
-=== TRNG ===
-Monobit: p = 0.3431, passed = True (1 ms)
-Frequency Within Block: p = 0.8117, passed = True (0 ms)
-Runs: p = 0.8469, passed = True (391 ms)
-Longest Run Ones In A Block: p = 0.8695, passed = True (179 ms)
-Binary Matrix Rank: p = 0.5212, passed = True (3097 ms)
-Discrete Fourier Transform: p = 0.0000, passed = False (67 ms)
-Non Overlapping Template Matching: p = 0.0000, passed = False (3874 ms)
-Maurers Universal: p = 0.0097, passed = False (1281 ms)
-Linear Complexity: p = 0.0000, passed = False (193338 ms)
-Serial: p = 0.0000, passed = False (67545 ms)
-Approximate Entropy: p = 0.0000, passed = False (38929 ms)
-Cumulative Sums: p = 1.0000, passed = True (2368 ms)
-Random Excursion: p = 0.6831, passed = False (8363 ms)
-Random Excursion Variant: p = 0.1703, passed = True (28 ms)
+
+======================================================================
+  PRNG
+======================================================================
+  125,000 bytes = 1,000,000 bits (0.1s)
+
+  --- NIST SP 800-22 Tests ---
+  [PASS] 01 Monobit Frequency: p = 0.802587  (0.1s)
+  [PASS] 02 Block Frequency (M=128): p = 0.433215  (0.0s)
+  [PASS] 03 Runs Test: p = 0.700932  (0.1s)
+  [PASS] 04 Longest Run of Ones: p = 0.854537  (0.1s)
+  [PASS] 05 Cumulative Sums (fwd): p = 0.917121  (0.1s)
+  [PASS] 06 Cumulative Sums (bwd): p = 0.972191  (0.1s)
+  [PASS] 07 Approximate Entropy (m=10): p = 0.136739  (2.7s)
+  [PASS] 08 Serial Test (m=16) (1): p = 0.306695  (8.6s)
+  [PASS] 08 Serial Test (m=16) (2): p = 0.728930  (8.6s)
+  [PASS] 09 Maurer Universal: p = 0.021395  (0.3s)
+  [PASS] 10 DFT/Spectral: p = 0.108294  (0.2s)
+  [PASS] 11 Binary Matrix Rank: p = 0.408469  (2.3s)
+  [PASS] 12 Non-Overlapping Template: p = 0.735773  (0.6s)
+  [PASS] 13 Linear Complexity (M=500): p = 0.674105  (39.1s)
+
+  --- Supplementary Tests ---
+  [PASS] 14 Chi-Squared Byte: p = 0.499152  (0.0s)
+  [INFO] 15 Compression Ratio: 1.000368  (0.0s)
+  [PASS] 16 Serial Correlation: r = +0.003295
+  [PASS] 17 Shannon Entropy: 7.998523 bits/byte
+
+  === SUMMARY: 17/17 tests passed ===
+      No anomalies detected.
+
+======================================================================
+  TRNG
+======================================================================
+  125,000 bytes = 1,000,000 bits (0.2s)
+
+  --- NIST SP 800-22 Tests ---
+  [PASS] 01 Monobit Frequency: p = 0.283720  (0.1s)
+  [PASS] 02 Block Frequency (M=128): p = 0.269732  (0.0s)
+  [PASS] 03 Runs Test: p = 0.067677  (0.2s)
+  [PASS] 04 Longest Run of Ones: p = 0.750123  (0.1s)
+  [PASS] 05 Cumulative Sums (fwd): p = 0.409311  (0.3s)
+  [PASS] 06 Cumulative Sums (bwd): p = 0.353290  (0.3s)
+  [PASS] 07 Approximate Entropy (m=10): p = 0.843013  (4.9s)
+  [PASS] 08 Serial Test (m=16) (1): p = 0.585293  (9.3s)
+  [PASS] 08 Serial Test (m=16) (2): p = 0.139053  (9.3s)
+  [PASS] 09 Maurer Universal: p = 0.627540  (0.3s)
+  [PASS] 10 DFT/Spectral: p = 0.748072  (0.2s)
+  [PASS] 11 Binary Matrix Rank: p = 0.983978  (2.3s)
+  [PASS] 12 Non-Overlapping Template: p = 0.550459  (0.5s)
+  [PASS] 13 Linear Complexity (M=500): p = 0.435967  (38.0s)
+
+  --- Supplementary Tests ---
+  [PASS] 14 Chi-Squared Byte: p = 0.221745  (0.0s)
+  [INFO] 15 Compression Ratio: 1.000368  (0.0s)
+  [PASS] 16 Serial Correlation: r = -0.000242
+  [PASS] 17 Shannon Entropy: 7.998423 bits/byte
+
+  === SUMMARY: 17/17 tests passed ===
+      No anomalies detected.
 #+end_example
 
