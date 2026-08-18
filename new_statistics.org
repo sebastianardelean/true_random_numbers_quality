@@ -23,7 +23,7 @@ from ast import literal_eval
 
 
 #+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
-PRNG = "pcg64"
+PRNG = "sfc64"
 PROJECT_ROOT_DIR = "./."
 BASE_IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images", PRNG)
 os.makedirs(BASE_IMAGES_PATH, exist_ok = True)
@@ -152,10 +152,10 @@ print(f"TRNG fraction of 1s: {trng_bit_freq['1']/trng_bit_stream_len}")
 #+END_SRC
 
 #+RESULTS:
-: PCG64 bit frequency: {'0': 408924, '1': 410276}
-: PCG64 fraction of 1s: 0.5008251953125
-: TRNG bit frequency: {'0': 408286, '1': 410914}
-: TRNG fraction of 1s: 0.50160400390625
+: SFC64 bit frequency: {'0': 410052, '1': 409148}
+: SFC64 fraction of 1s: 0.4994482421875
+: TRNG bit frequency: {'0': 409636, '1': 409564}
+: TRNG fraction of 1s: 0.4999560546875
 
 #+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
 streams = {
@@ -183,10 +183,10 @@ save_figure("bit_chisquare", BASE_IMAGES_PATH)
 
 #+RESULTS:
 :RESULTS:
-: PCG64: chi2 = 2.2313, p-value = 0.1352
-: TRNG: chi2 = 8.4306, p-value = 0.0037
+: SFC64: chi2 = 0.9976, p-value = 0.3179
+: TRNG: chi2 = 0.0063, p-value = 0.9366
 : Saving figure bit_chisquare
-[[file:./.ob-jupyter/a7260f4fab3a02e5ea122fa287a00e794cb504b9.png]]
+[[file:./.ob-jupyter/eead458c9bb2e09e7f446bf7715a46fca3c9276c.png]]
 :END:
 
 #+BEGIN_SRC python :kernel tutorials :tangle "new_statistics.py"
@@ -233,9 +233,9 @@ print(f"TRNG mean p-value: {np.mean(trng_p_values):.4f}, std: {np.std(trng_p_val
 #+RESULTS:
 :RESULTS:
 : Saving figure bit_pvalue_histogram
-: PCG64 mean p-value: 0.5145, std: 0.2855 0.025
-: TRNG mean p-value: 0.5020, std: 0.2888 0.03
-[[file:./.ob-jupyter/748b9f39802b651e4649cb37f76e7b8a0e2bb7e4.png]]
+: SFC64 mean p-value: 0.5101, std: 0.2960 0.035
+: TRNG mean p-value: 0.5025, std: 0.2988 0.035
+[[file:./.ob-jupyter/2a9aeeb7cd4373a1af0eb5625bd390156fdd97f8.png]]
 :END:
 
 
@@ -287,26 +287,26 @@ save_figure("bit_autocorrelation", BASE_IMAGES_PATH)
 #+RESULTS:
 :RESULTS:
 #+begin_example
-PCG64 mean ACF:
-  lag 1: 0.000013
-  lag 2: -0.000015
-  lag 4: -0.000112
-  lag 8: 0.000154
-  lag 16: 0.000112
-  lag 32: -0.000062
-  lag 64: -0.000093
+SFC64 mean ACF:
+  lag 1: -0.000111
+  lag 2: 0.000019
+  lag 4: 0.000147
+  lag 8: -0.000019
+  lag 16: 0.000130
+  lag 32: 0.000111
+  lag 64: 0.000073
 TRNG mean ACF:
-  lag 1: 0.000014
-  lag 2: -0.000043
-  lag 4: 0.000106
-  lag 8: 0.000020
-  lag 16: 0.000016
-  lag 32: -0.000275
-  lag 64: -0.000027
+  lag 1: 0.000100
+  lag 2: 0.000079
+  lag 4: 0.000173
+  lag 8: -0.000164
+  lag 16: -0.000043
+  lag 32: 0.000069
+  lag 64: 0.000102
 95% confidence band: ±0.002166
 Saving figure bit_autocorrelation
 #+end_example
-[[file:./.ob-jupyter/564af4c7c2aa579ed1467eb1863ecd407cd462ff.png]]
+[[file:./.ob-jupyter/b012f983cbe70faa616cebd0ebcb9c96397667b5.png]]
 :END:
 ** Byte-level tests
 
@@ -386,17 +386,19 @@ save_figure("byte_level_tests", BASE_IMAGES_PATH)
 
 #+RESULTS:
 :RESULTS:
-: === Byte Chi-squared ===
-: PCG64 mean p-value: 0.5082, fail rate: 4.00%
-: TRNG mean p-value: 0.5026, fail rate: 3.50%
-: === Serial Correlation (r between consecutive bytes) ===
-: PCG64 mean r: 0.000318, std: 0.003136
-: TRNG mean r: -0.000246, std: 0.003316
-: === Shannon Entropy (max 8.0 bits) ===
-: PCG64 mean: nan, std: nan
-: TRNG mean: 7.9982, std: 0.0002
-: Saving figure byte_level_tests
-[[file:./.ob-jupyter/8b2683f547bfef489f4caf7bdf1181192841147d.png]]
+#+begin_example
+=== Byte Chi-squared ===
+SFC64 mean p-value: 0.4640, fail rate: 7.00%
+TRNG mean p-value: 0.4972, fail rate: 4.00%
+=== Serial Correlation (r between consecutive bytes) ===
+SFC64 mean r: 0.000117, std: 0.003359
+TRNG mean r: -0.000298, std: 0.003307
+=== Shannon Entropy (max 8.0 bits) ===
+SFC64 mean: nan, std: nan
+TRNG mean: 7.9982, std: 0.0002
+Saving figure byte_level_tests
+#+end_example
+[[file:./.ob-jupyter/6cbc48cf73c781a931fa8dceb34ffea4c3d3e5a2.png]]
 :END:
 *** NIST STS
 
@@ -428,34 +430,34 @@ for name in (PRNG.upper(), "TRNG"):
 #+begin_example
 
 ======================================================================
-  PCG64
+  SFC64
 ======================================================================
   125,000 bytes = 1,000,000 bits (0.1s)
 
   --- NIST SP 800-22 Tests ---
-  [PASS] 01 Monobit Frequency: p = 0.054104  (0.1s)
-  [PASS] 02 Block Frequency (M=128): p = 0.125202  (0.0s)
-  [PASS] 03 Runs Test: p = 0.099822  (0.1s)
-  [PASS] 04 Longest Run of Ones: p = 0.233446  (0.1s)
-  [PASS] 05 Cumulative Sums (fwd): p = 0.042670  (0.1s)
-  [PASS] 06 Cumulative Sums (bwd): p = 0.053933  (0.1s)
-  [PASS] 07 Approximate Entropy (m=10): p = 0.950762  (2.6s)
-  [PASS] 08 Serial Test (m=16) (1): p = 0.667265  (6.7s)
-  [PASS] 08 Serial Test (m=16) (2): p = 0.399057  (6.7s)
-  [PASS] 09 Maurer Universal: p = 0.411506  (0.3s)
-  [PASS] 10 DFT/Spectral: p = 0.373394  (0.2s)
-  [FAIL] 11 Binary Matrix Rank: p = 0.007128  (2.2s)
-  [PASS] 12 Non-Overlapping Template: p = 0.742326  (0.5s)
-  [PASS] 13 Linear Complexity (M=500): p = 0.526872  (36.0s)
+  [PASS] 01 Monobit Frequency: p = 0.850877  (0.1s)
+  [PASS] 02 Block Frequency (M=128): p = 0.840764  (0.0s)
+  [PASS] 03 Runs Test: p = 0.150444  (0.1s)
+  [PASS] 04 Longest Run of Ones: p = 0.135822  (0.1s)
+  [PASS] 05 Cumulative Sums (fwd): p = 0.834147  (0.1s)
+  [PASS] 06 Cumulative Sums (bwd): p = 0.682964  (0.1s)
+  [PASS] 07 Approximate Entropy (m=10): p = 0.867280  (3.4s)
+  [PASS] 08 Serial Test (m=16) (1): p = 0.268266  (10.6s)
+  [PASS] 08 Serial Test (m=16) (2): p = 0.344749  (10.6s)
+  [PASS] 09 Maurer Universal: p = 0.707862  (0.3s)
+  [PASS] 10 DFT/Spectral: p = 0.218821  (0.2s)
+  [PASS] 11 Binary Matrix Rank: p = 0.593173  (2.3s)
+  [PASS] 12 Non-Overlapping Template: p = 0.651542  (0.5s)
+  [PASS] 13 Linear Complexity (M=500): p = 0.990487  (41.2s)
 
   --- Supplementary Tests ---
-  [PASS] 14 Chi-Squared Byte: p = 0.381782  (0.0s)
+  [PASS] 14 Chi-Squared Byte: p = 0.692536  (0.0s)
   [INFO] 15 Compression Ratio: 1.000368  (0.0s)
-  [PASS] 16 Serial Correlation: r = +0.000695
-  [PASS] 17 Shannon Entropy: 7.998495 bits/byte
+  [PASS] 16 Serial Correlation: r = -0.000367
+  [PASS] 17 Shannon Entropy: 7.998606 bits/byte
 
-  === SUMMARY: 16/17 tests passed ===
-      FAIL: 11 Binary Matrix Rank: 0.007127874559075577
+  === SUMMARY: 17/17 tests passed ===
+      No anomalies detected.
 
 ======================================================================
   TRNG
@@ -463,26 +465,26 @@ for name in (PRNG.upper(), "TRNG"):
   125,000 bytes = 1,000,000 bits (0.2s)
 
   --- NIST SP 800-22 Tests ---
-  [PASS] 01 Monobit Frequency: p = 0.629806  (0.1s)
-  [PASS] 02 Block Frequency (M=128): p = 0.642316  (0.0s)
-  [PASS] 03 Runs Test: p = 0.441438  (0.2s)
-  [PASS] 04 Longest Run of Ones: p = 0.841464  (0.1s)
-  [PASS] 05 Cumulative Sums (fwd): p = 0.813865  (0.2s)
-  [PASS] 06 Cumulative Sums (bwd): p = 0.736471  (0.2s)
-  [PASS] 07 Approximate Entropy (m=10): p = 0.584908  (4.2s)
-  [PASS] 08 Serial Test (m=16) (1): p = 0.902373  (8.9s)
-  [PASS] 08 Serial Test (m=16) (2): p = 0.466372  (8.9s)
-  [PASS] 09 Maurer Universal: p = 0.744742  (0.3s)
-  [PASS] 10 DFT/Spectral: p = 0.457296  (0.2s)
-  [PASS] 11 Binary Matrix Rank: p = 0.425221  (3.6s)
-  [PASS] 12 Non-Overlapping Template: p = 0.959463  (0.6s)
-  [PASS] 13 Linear Complexity (M=500): p = 0.767350  (36.5s)
+  [PASS] 01 Monobit Frequency: p = 0.723339  (0.1s)
+  [PASS] 02 Block Frequency (M=128): p = 0.328677  (0.0s)
+  [PASS] 03 Runs Test: p = 0.771912  (0.2s)
+  [PASS] 04 Longest Run of Ones: p = 0.083261  (0.1s)
+  [PASS] 05 Cumulative Sums (fwd): p = 0.871855  (0.2s)
+  [PASS] 06 Cumulative Sums (bwd): p = 0.963651  (0.2s)
+  [PASS] 07 Approximate Entropy (m=10): p = 0.313103  (4.3s)
+  [PASS] 08 Serial Test (m=16) (1): p = 0.356312  (9.0s)
+  [PASS] 08 Serial Test (m=16) (2): p = 0.177572  (9.0s)
+  [PASS] 09 Maurer Universal: p = 0.434574  (0.3s)
+  [PASS] 10 DFT/Spectral: p = 0.783087  (0.3s)
+  [PASS] 11 Binary Matrix Rank: p = 0.681239  (2.2s)
+  [PASS] 12 Non-Overlapping Template: p = 0.899188  (0.5s)
+  [PASS] 13 Linear Complexity (M=500): p = 0.498413  (65.8s)
 
   --- Supplementary Tests ---
-  [PASS] 14 Chi-Squared Byte: p = 0.296159  (0.0s)
+  [PASS] 14 Chi-Squared Byte: p = 0.117583  (0.0s)
   [INFO] 15 Compression Ratio: 1.000368  (0.0s)
-  [PASS] 16 Serial Correlation: r = +0.000600
-  [PASS] 17 Shannon Entropy: 7.998458 bits/byte
+  [PASS] 16 Serial Correlation: r = -0.001076
+  [PASS] 17 Shannon Entropy: 7.998367 bits/byte
 
   === SUMMARY: 17/17 tests passed ===
       No anomalies detected.
@@ -552,9 +554,8 @@ if trng_passed < total:
 :RESULTS:
 : Saving figure nist_results
 : 
-: PCG64: 14/15 tests passed
+: SFC64: 15/15 tests passed
 : TRNG: 15/15 tests passed
-: PCG64 failed: 11 Binary Matrix Rank
-[[file:./.ob-jupyter/f045eecdfea6b336da91d690f4155380263bde76.png]]
+[[file:./.ob-jupyter/2143640c9fbc52a7e4dcc0e0308f53c231517928.png]]
 :END:
 

@@ -25,7 +25,7 @@ from MFDFA import MFDFA
 
 
 #+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
-PRNG = "pcg64"
+PRNG = "sfc64"
 PROJECT_ROOT_DIR = "./."
 BASE_IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images", PRNG)
 os.makedirs(BASE_IMAGES_PATH, exist_ok = True)
@@ -181,11 +181,11 @@ print(f"White noise reference: h(q) = 0.5 for all q")
 :RESULTS:
 : Saving figure mfdfa
 : Saving figure generalized_hurst_exponent
-: TRNG h(q) range: [0.492, 0.666]
-: PCG64 h(q) range: [0.467, 0.662]
+: TRNG h(q) range: [0.475, 0.619]
+: SFC64 h(q) range: [0.466, 0.698]
 : White noise reference: h(q) = 0.5 for all q
-[[file:./.ob-jupyter/3a11c3f9eaf9e94a6610660ee3bc1dc0c983ed3d.png]]
-[[file:./.ob-jupyter/79c3be2de19c9087e224ec537283ea3ecf76a300.png]]
+[[file:./.ob-jupyter/bbbd06c1acf3907c96341add07165af2590b6bd1.png]]
+[[file:./.ob-jupyter/d71264ae01ce3dced2c0fea3ccc976825aa23208.png]]
 :END:
 
 #+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
@@ -196,10 +196,10 @@ print(f"Mean |h(q) - 0.5| {PRNG.upper()}: {np.mean(np.abs(hq_prng - 0.5)):.4f}")
 #+END_SRC
 
 #+RESULTS:
-: TRNG h(q) range: [0.492, 0.666]
-: PCG64 h(q) range: [0.467, 0.662]
-: Mean |h(q) - 0.5| TRNG: 0.0610
-: Mean |h(q) - 0.5| PCG64: 0.0566
+: TRNG h(q) range: [0.475, 0.619]
+: SFC64 h(q) range: [0.466, 0.698]
+: Mean |h(q) - 0.5| TRNG: 0.0423
+: Mean |h(q) - 0.5| SFC64: 0.0711
 
 
 ** Conclusion
