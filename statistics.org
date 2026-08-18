@@ -24,8 +24,9 @@ from ast import literal_eval
 
 
 #+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
+PRNG = "pcg64"
 PROJECT_ROOT_DIR = "./."
-BASE_IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images")
+BASE_IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images", PRNG)
 os.makedirs(BASE_IMAGES_PATH, exist_ok = True)
 
 def save_figure(fig_id, image_path, tight_layout = True, fig_extension = "png", resolution = 300):
@@ -113,7 +114,7 @@ ARRAY_SIZE = 10000
 
 #+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
 trng = qrandint(RANGE_MIN, RANGE_MAX + 1, ARRAY_SIZE, pool_size = 100000)
-prng = randint(RANGE_MIN, RANGE_MAX + 1, ARRAY_SIZE, generator="mt19937")
+prng = randint(RANGE_MIN, RANGE_MAX + 1, ARRAY_SIZE, generator=PRNG)
 #+END_SRC
 
 #+RESULTS:
@@ -144,7 +145,7 @@ axes[0].set_ylabel("Density")
 axes[0].legend()
 
 # --- PRNG ---
-axes[1].hist(prng, bins=bins, alpha=0.6, density=True, label="PRNG")
+axes[1].hist(prng, bins=bins, alpha=0.6, density=True, label=PRNG)
 axes[1].hlines(
     y=1/k,
     xmin=RANGE_MIN,
@@ -153,7 +154,7 @@ axes[1].hlines(
     linestyles="dashed",
     label="Theoretical Uniform"
 )
-axes[1].set_title("PRNG Uniformity")
+axes[1].set_title(f"{PRNG.upper()} Uniformity")
 axes[1].set_xlabel("Value")
 axes[1].legend()
 
@@ -166,10 +167,10 @@ for ax in axes:
     ax.axvline(mean_theoretical, color="red", linestyle=":", label="Mean")
 
 axes[0].set_title(f"TRNG\nmean={np.mean(trng):.2f}, std={np.std(trng):.2f}")
-axes[1].set_title(f"PRNG\nmean={np.mean(prng):.2f}, std={np.std(prng):.2f}")
+axes[1].set_title(f"{PRNG.upper()}\nmean={np.mean(prng):.2f}, std={np.std(prng):.2f}")
 plt.suptitle("Uniformity Check: TRNG vs PRNG")
 plt.tight_layout()
-plt.show()
+
 
 save_figure("uniformity", BASE_IMAGES_PATH)
 plt.show()
@@ -177,9 +178,8 @@ plt.show()
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/9515d7a3c25714dc9fc8205e031a1233065f24ce.png]]
 : Saving figure uniformity
-: <Figure size 640x480 with 0 Axes>
+[[file:./.ob-jupyter/5ffc97bc94ddc14ac1f7c2f7c3a44fd6d73ab4f4.png]]
 :END:
 
 #+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
@@ -189,7 +189,7 @@ mean_theoretical = (RANGE_MIN + RANGE_MAX) / 2
 
 plt.boxplot(
     [trng, prng],
-    tick_labels=["TRNG", "PRNG"],
+    tick_labels=["TRNG", PRNG.upper()],
     showmeans=True,
     patch_artist=True,
     boxprops=dict(facecolor="lightblue"),
@@ -208,17 +208,16 @@ plt.title("Spread Comparison (Boxplot)")
 plt.ylabel("Value")
 plt.grid(axis="y", alpha=0.3)
 plt.legend()
-
-plt.show()
 save_figure("spread_comparison_boxplot", BASE_IMAGES_PATH)
+plt.show()
+
 
 #+END_SRC
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/0e6caa64396ad972b8234cc3b7de9693a033ae0a.png]]
 : Saving figure spread_comparison_boxplot
-: <Figure size 640x480 with 0 Axes>
+[[file:./.ob-jupyter/eb83727c830b79d9e268bbb24c8a877a34e1e24a.png]]
 :END:
 
 
@@ -240,7 +239,7 @@ prng_residual = (prng_hist - expected_count) / np.sqrt(expected_count)
 plt.figure()
 
 plt.plot(trng_residual, label="TRNG residual")
-plt.plot(prng_residual, label="PRNG residual")
+plt.plot(prng_residual, label=f"{PRNG.upper()} residual")
 
 plt.axhline(0, linestyle="--", color="black")
 
@@ -254,18 +253,18 @@ plt.ylabel("Deviation from expected probability")
 plt.legend()
 plt.grid(alpha=0.3)
 
+save_figure("deviation_from_uniform_distribution", BASE_IMAGES_PATH)
 plt.show()
 
 
-save_figure("deviation_from_uniform_distribution", BASE_IMAGES_PATH)
+
 
 #+END_SRC
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/7b2b2eb07ca4bbf4a992767a61fb5386ba18456d.png]]
 : Saving figure deviation_from_uniform_distribution
-: <Figure size 640x480 with 0 Axes>
+[[file:./.ob-jupyter/297a5af6e8e886fb978fb65c69c700700b60cf59.png]]
 :END:
 
 
@@ -281,7 +280,7 @@ x = np.linspace(RANGE_MIN, RANGE_MAX, 1000)
 plt.figure()
 
 plt.plot(x, trng_ecdf(x), label="TRNG")
-plt.plot(x, prng_ecdf(x), label="PRNG")
+plt.plot(x, prng_ecdf(x), label=PRNG.upper())
 
 plt.plot(
     x,
@@ -295,7 +294,7 @@ plt.title("CDF Comparison")
 plt.xlabel("Value")
 plt.ylabel("F(x)")
 plt.grid(alpha=0.3)
-
+save_figure("cdf_comparison", BASE_IMAGES_PATH)
 plt.show()
 
 
@@ -305,7 +304,7 @@ plt.figure()
 ideal_cdf = (x - RANGE_MIN) / (RANGE_MAX - RANGE_MIN)
 
 plt.plot(x, trng_ecdf(x) - ideal_cdf, label="TRNG")
-plt.plot(x, prng_ecdf(x) - ideal_cdf, label="PRNG")
+plt.plot(x, prng_ecdf(x) - ideal_cdf, label=f"{PRNG.upper()}")
 
 plt.axhline(0, linestyle="--", color="black")
 
@@ -314,18 +313,18 @@ plt.xlabel("Value")
 plt.ylabel("Deviation")
 plt.legend()
 plt.grid(alpha=0.3)
-
-plt.show()
 save_figure("cdf_deviation", BASE_IMAGES_PATH)
+plt.show()
+
 
 #+END_SRC
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/d4dde6a7246332532034d31e4940199023e6f05d.png]]
-[[file:./.ob-jupyter/432f49e2e94594c0a9c7eb85dab067c807188a06.png]]
+: Saving figure cdf_comparison
+[[file:./.ob-jupyter/7d9092fd35b123d632d91c368255377b7c4b616b.png]]
 : Saving figure cdf_deviation
-: <Figure size 640x480 with 0 Axes>
+[[file:./.ob-jupyter/cb8d50fd3c20096a0461219edb441c5128b114af.png]]
 :END:
 
 
@@ -349,20 +348,20 @@ trng_relative_error = abs(trng_error) / theoretical_mean
 prng_relative_error = abs(prng_error) / theoretical_mean
 print(f"Theoretical Mean:{theoretical_mean}")
 print(f"TRNG:\n\tMean:{trng_mean}\n\tError:{trng_error}\n\tRelative Error:{trng_relative_error}")
-print(f"PRNG:\n\tMean:{prng_mean}\n\tError:{prng_error}\n\tRelative Error:{prng_relative_error}")
+print(f"{PRNG.upper()}:\n\tMean:{prng_mean}\n\tError:{prng_error}\n\tRelative Error:{prng_relative_error}")
 
 #+END_SRC
 
 #+RESULTS:
 : Theoretical Mean:499.5
 : TRNG:
-: 	Mean:509.0192
-: 	Error:9.519200000000012
-: 	Relative Error:0.01905745745745748
-: PRNG:
-: 	Mean:495.958
-: 	Error:-3.541999999999973
-: 	Relative Error:0.007091091091091037
+: 	Mean:500.1786
+: 	Error:0.6786000000000172
+: 	Relative Error:0.001358558558558593
+: PCG64:
+: 	Mean:503.5333
+: 	Error:4.033299999999997
+: 	Relative Error:0.008074674674674669
 
 
 
@@ -379,7 +378,7 @@ trng_relative_error = abs(trng_error) / theoretical_std
 prng_relative_error = abs(prng_error) / theoretical_std
 print(f"Theoretical STD:{theoretical_std}")
 print(f"TRNG:\n\tMean:{trng_std}\n\tError:{trng_error}\n\tRelative Error:{trng_relative_error}")
-print(f"PRNG:\n\tMean:{prng_std}\n\tError:{prng_error}\n\tRelative Error:{prng_relative_error}")
+print(f"{PRNG.upper()}:\n\tMean:{prng_std}\n\tError:{prng_error}\n\tRelative Error:{prng_relative_error}")
                           
 
 
@@ -388,13 +387,13 @@ print(f"PRNG:\n\tMean:{prng_std}\n\tError:{prng_error}\n\tRelative Error:{prng_r
 #+RESULTS:
 : Theoretical STD:288.6749902572095
 : TRNG:
-: 	Mean:289.2116412445391
-: 	Error:0.5366509873296081
-: 	Relative Error:0.0018590144814812392
-: PRNG:
-: 	Mean:289.25667984681013
-: 	Error:0.5816895896006145
-: 	Relative Error:0.002015032854360985
+: 	Mean:287.87565423640814
+: 	Error:-0.7993360208013769
+: 	Relative Error:0.002768982585187474
+: PCG64:
+: 	Mean:287.1096179007419
+: 	Error:-1.5653723564676056
+: 	Relative Error:0.005422611619637913
 
 *** Skewness
 
@@ -402,12 +401,12 @@ print(f"PRNG:\n\tMean:{prng_std}\n\tError:{prng_error}\n\tRelative Error:{prng_r
 theoretical_skew = 0
 trng_skew = skew(trng)
 prng_skew = skew(prng)
-print(f"TRNG Skew {trng_skew}\nPRGN Skew {prng_skew}")
+print(f"TRNG Skew {trng_skew}\n{PRNG.upper()} Skew {prng_skew}")
 #+END_SRC
 
 #+RESULTS:
-: TRNG Skew -0.03458899160935222
-: PRGN Skew 0.021856245048761245
+: TRNG Skew -0.001569927080922389
+: PCG64 Skew -0.010346850588080643
 
 Value interpretation: positive skew means a heavier right tail while negative means a heavier left tail.
 
@@ -421,13 +420,13 @@ prng_kurt = kurtosis(prng, fisher=True)
 trng_error = trng_kurt - theoretical_kurt
 prng_error = prng_kurt - theoretical_kurt
 
-print(f"TRNG kurtosis:{trng_kurt}\nPRNG kurtosis:{prng_kurt}")
+print(f"TRNG kurtosis:{trng_kurt}\n{PRNG.upper()} kurtosis:{prng_kurt}")
 
 #+END_SRC
 
 #+RESULTS:
-: TRNG kurtosis:-1.2078263521689139
-: PRNG kurtosis:-1.198988774340815
+: TRNG kurtosis:-1.186483521019011
+: PCG64 kurtosis:-1.1913704997726087
 
 
 ** Testing with Pearson Chi Squared
@@ -454,7 +453,7 @@ print("TRNG:")
 print(f"\tChi2 statistic: {chi_trng.statistic}")
 print(f"\tp-value: {chi_trng.pvalue}")
 
-print("\nPRNG:")
+print(f"\n{PRNG.upper()}:")
 print(f"\tChi2 statistic: {chi_prng.statistic}")
 print(f"\tp-value: {chi_prng.pvalue}")
 
@@ -468,7 +467,7 @@ plt.bar(x - width/2, trng_hist, width,
         label=f"TRNG (χ²={chi_trng.statistic:.1f}, p={chi_trng.pvalue:.4f})")
 
 plt.bar(x + width/2, prng_hist, width,
-        label=f"PRNG (χ²={chi_prng.statistic:.1f}, p={chi_prng.pvalue:.4f})")
+        label=f"{PRNG.upper()} (χ²={chi_prng.statistic:.1f}, p={chi_prng.pvalue:.4f})")
 
 plt.plot(x, expected, 'k--', label="Expected")
 
@@ -490,14 +489,14 @@ plt.show()
 : === Pearson Chi-Square Test ===
 : 
 : TRNG:
-: 	Chi2 statistic: 60.290000000000006
-: 	p-value: 0.12939794841475052
+: 	Chi2 statistic: 53.599999999999994
+: 	p-value: 0.30230735773729744
 : 
-: PRNG:
-: 	Chi2 statistic: 54.169999999999995
-: 	p-value: 0.28373810702937247
+: PCG64:
+: 	Chi2 statistic: 46.339999999999996
+: 	p-value: 0.5816068707834537
 : Saving figure chi_square
-[[file:./.ob-jupyter/d62cbeb799fa530200cb745239f1f318fa5f79e4.png]]
+[[file:./.ob-jupyter/4f6f6437298aaea19f7b6f5eb544c040ba730d8b.png]]
 :END:
 
 
@@ -519,7 +518,7 @@ print(f"PRNG: {w_prng}")
 
 plt.figure()
 
-labels = ["TRNG", "PRNG"]
+labels = ["TRNG", PRNG.upper()]
 values = [w_trng, w_prng]
 
 plt.bar(labels, values, color=["blue", "orange"])
@@ -541,10 +540,10 @@ plt.show()
 :RESULTS:
 : === Wasserstein Distance ===
 : 
-: TRNG: 9.052035783578384
-: PRNG: 4.1584895889588775
+: TRNG: 1.7817799579957974
+: PRNG: 3.6308879787979
 : Saving figure wasserstein
-[[file:./.ob-jupyter/b74a84b6d6cc98467634f546f95d11bb571ce4a9.png]]
+[[file:./.ob-jupyter/b867fd8402d73aa478f3c4b0b572ed7f251581c0.png]]
 :END:
 
 
