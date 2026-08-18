@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from collections import deque
 import numpy as np
 import requests as re
+from numpy.random import PCG64, Generator
 from ast import literal_eval
 #+END_SRC
 
@@ -79,6 +80,25 @@ def qrandint(l, h, n, pool_size = 100000) -> np.array:
 
 #+RESULTS:
 
+*** PRNG
+
+#+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
+def randint(l, h, n, generator="pcg64", seed=None, dtype = np.uint32):
+    generators = {
+        "pcg64": np.random.PCG64,
+        "mt19937": np.random.MT19937,
+        "philox": np.random.Philox,
+        "sfc64": np.random.SFC64,
+    }
+    if generator not in generators:
+        raise ValueError(f"Unknown generator: {generator}. Choose from {list(generators.keys())}")
+    rng = np.random.default_rng(generators[generator](seed))
+    return rng.integers(l, h, size=n, dtype=dtype)
+#+END_SRC
+
+#+RESULTS:
+
+
 *** Configurations
 
 #+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
@@ -93,7 +113,7 @@ ARRAY_SIZE = 10000
 
 #+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
 trng = qrandint(RANGE_MIN, RANGE_MAX + 1, ARRAY_SIZE, pool_size = 100000)
-prng = np.random.randint(RANGE_MIN, RANGE_MAX + 1, size = ARRAY_SIZE)
+prng = randint(RANGE_MIN, RANGE_MAX + 1, ARRAY_SIZE, generator="mt19937")
 #+END_SRC
 
 #+RESULTS:
@@ -157,7 +177,7 @@ plt.show()
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/9bc9dda3f369552d00fe341c877dd4bb4ca7f14c.png]]
+[[file:./.ob-jupyter/9515d7a3c25714dc9fc8205e031a1233065f24ce.png]]
 : Saving figure uniformity
 : <Figure size 640x480 with 0 Axes>
 :END:
@@ -196,7 +216,7 @@ save_figure("spread_comparison_boxplot", BASE_IMAGES_PATH)
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/69cc784532c0a07cdecba8de39d6fb01ff08bff9.png]]
+[[file:./.ob-jupyter/0e6caa64396ad972b8234cc3b7de9693a033ae0a.png]]
 : Saving figure spread_comparison_boxplot
 : <Figure size 640x480 with 0 Axes>
 :END:
@@ -243,7 +263,7 @@ save_figure("deviation_from_uniform_distribution", BASE_IMAGES_PATH)
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/579ed41d27b58b76a36807b75461dad1e6429543.png]]
+[[file:./.ob-jupyter/7b2b2eb07ca4bbf4a992767a61fb5386ba18456d.png]]
 : Saving figure deviation_from_uniform_distribution
 : <Figure size 640x480 with 0 Axes>
 :END:
@@ -302,8 +322,8 @@ save_figure("cdf_deviation", BASE_IMAGES_PATH)
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/74edbef2326690461f4315c06ae77fb8d098e8b2.png]]
-[[file:./.ob-jupyter/b1ba2b35e38dba4abca1f89f49f89cf1a4388d92.png]]
+[[file:./.ob-jupyter/d4dde6a7246332532034d31e4940199023e6f05d.png]]
+[[file:./.ob-jupyter/432f49e2e94594c0a9c7eb85dab067c807188a06.png]]
 : Saving figure cdf_deviation
 : <Figure size 640x480 with 0 Axes>
 :END:
@@ -336,13 +356,13 @@ print(f"PRNG:\n\tMean:{prng_mean}\n\tError:{prng_error}\n\tRelative Error:{prng_
 #+RESULTS:
 : Theoretical Mean:499.5
 : TRNG:
-: 	Mean:500.3604
-: 	Error:0.8604000000000269
-: 	Relative Error:0.0017225225225225764
+: 	Mean:509.0192
+: 	Error:9.519200000000012
+: 	Relative Error:0.01905745745745748
 : PRNG:
-: 	Mean:501.212
-: 	Error:1.711999999999989
-: 	Relative Error:0.003427427427427406
+: 	Mean:495.958
+: 	Error:-3.541999999999973
+: 	Relative Error:0.007091091091091037
 
 
 
@@ -368,13 +388,13 @@ print(f"PRNG:\n\tMean:{prng_std}\n\tError:{prng_error}\n\tRelative Error:{prng_r
 #+RESULTS:
 : Theoretical STD:288.6749902572095
 : TRNG:
-: 	Mean:290.6047840484392
-: 	Error:1.929793791229713
-: 	Relative Error:0.0066850051315850605
+: 	Mean:289.2116412445391
+: 	Error:0.5366509873296081
+: 	Relative Error:0.0018590144814812392
 : PRNG:
-: 	Mean:289.90476652859644
-: 	Error:1.2297762713869247
-: 	Relative Error:0.004260072098006113
+: 	Mean:289.25667984681013
+: 	Error:0.5816895896006145
+: 	Relative Error:0.002015032854360985
 
 *** Skewness
 
@@ -386,8 +406,8 @@ print(f"TRNG Skew {trng_skew}\nPRGN Skew {prng_skew}")
 #+END_SRC
 
 #+RESULTS:
-: TRNG Skew 0.009331361720193958
-: PRGN Skew -0.008607782982018574
+: TRNG Skew -0.03458899160935222
+: PRGN Skew 0.021856245048761245
 
 Value interpretation: positive skew means a heavier right tail while negative means a heavier left tail.
 
@@ -406,8 +426,8 @@ print(f"TRNG kurtosis:{trng_kurt}\nPRNG kurtosis:{prng_kurt}")
 #+END_SRC
 
 #+RESULTS:
-: TRNG kurtosis:-1.2208809271388628
-: PRNG kurtosis:-1.2001883944466163
+: TRNG kurtosis:-1.2078263521689139
+: PRNG kurtosis:-1.198988774340815
 
 
 ** Testing with Pearson Chi Squared
@@ -470,14 +490,14 @@ plt.show()
 : === Pearson Chi-Square Test ===
 : 
 : TRNG:
-: 	Chi2 statistic: 54.07
-: 	p-value: 0.28694678040653177
+: 	Chi2 statistic: 60.290000000000006
+: 	p-value: 0.12939794841475052
 : 
 : PRNG:
-: 	Chi2 statistic: 36.94
-: 	p-value: 0.8973627212015329
+: 	Chi2 statistic: 54.169999999999995
+: 	p-value: 0.28373810702937247
 : Saving figure chi_square
-[[file:./.ob-jupyter/2352f2aa84c6e63335c86c7d808adbc62658f530.png]]
+[[file:./.ob-jupyter/d62cbeb799fa530200cb745239f1f318fa5f79e4.png]]
 :END:
 
 
@@ -521,10 +541,10 @@ plt.show()
 :RESULTS:
 : === Wasserstein Distance ===
 : 
-: TRNG: 2.7997448144814596
-: PRNG: 1.9957236323632586
+: TRNG: 9.052035783578384
+: PRNG: 4.1584895889588775
 : Saving figure wasserstein
-[[file:./.ob-jupyter/41137374a32fd5cd9ac379e6acd6ea6d2342f838.png]]
+[[file:./.ob-jupyter/b74a84b6d6cc98467634f546f95d11bb571ce4a9.png]]
 :END:
 
 

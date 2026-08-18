@@ -81,6 +81,24 @@ def qrandint(l, h, n, pool_size = 100000) -> np.array:
 
 #+RESULTS:
 
+*** PRNG
+
+#+BEGIN_SRC python :kernel tutorials :tangle "statistics.py"
+def randint(l, h, n, generator="pcg64", seed=None, dtype = np.uint32):
+    generators = {
+        "pcg64": np.random.PCG64,
+        "mt19937": np.random.MT19937,
+        "philox": np.random.Philox,
+        "sfc64": np.random.SFC64,
+    }
+    if generator not in generators:
+        raise ValueError(f"Unknown generator: {generator}. Choose from {list(generators.keys())}")
+    rng = np.random.default_rng(generators[generator](seed))
+    return rng.integers(l, h, size=n, dtype=dtype)
+#+END_SRC
+
+#+RESULTS:
+
 *** Configurations
 
 #+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
@@ -95,7 +113,7 @@ ARRAY_SIZE = 10000
 
 #+BEGIN_SRC python :kernel tutorials :tangle "mfdfa.py"
 trng = qrandint(RANGE_MIN, RANGE_MAX + 1, ARRAY_SIZE, pool_size = 100000)
-prng = np.random.randint(RANGE_MIN, RANGE_MAX + 1, size = ARRAY_SIZE)
+prng = randint(RANGE_MIN, RANGE_MAX + 1, ARRAY_SIZE, generator="mt19937")
 #+END_SRC
 
 #+RESULTS:
@@ -159,10 +177,10 @@ print(f"White noise reference: h(q) = 0.5 for all q")
 
 #+RESULTS:
 :RESULTS:
-[[file:./.ob-jupyter/9809e30d02652c95ebc74b18bca9eee35e9f5d0e.png]]
-[[file:./.ob-jupyter/867fcba3adfee622c2f93aedb455839114294c08.png]]
-: TRNG h(q) range: [0.495, 0.680]
-: PRNG h(q) range: [0.444, 0.617]
+[[file:./.ob-jupyter/220cebdb797b50d0553f7da1d05b55d3ff04a13d.png]]
+[[file:./.ob-jupyter/1b151233b94b560b596c48e1526280122ba42438.png]]
+: TRNG h(q) range: [0.496, 0.655]
+: PRNG h(q) range: [0.460, 0.640]
 : White noise reference: h(q) = 0.5 for all q
 :END:
 
@@ -174,10 +192,10 @@ print(f"Mean |h(q) - 0.5| PRNG: {np.mean(np.abs(hq_prng - 0.5)):.4f}")
 #+END_SRC
 
 #+RESULTS:
-: TRNG h(q) range: [0.495, 0.680]
-: PRNG h(q) range: [0.444, 0.617]
-: Mean |h(q) - 0.5| TRNG: 0.0673
-: Mean |h(q) - 0.5| PRNG: 0.0511
+: TRNG h(q) range: [0.496, 0.655]
+: PRNG h(q) range: [0.460, 0.640]
+: Mean |h(q) - 0.5| TRNG: 0.0510
+: Mean |h(q) - 0.5| PRNG: 0.0524
 
 
 ** Conclusion
