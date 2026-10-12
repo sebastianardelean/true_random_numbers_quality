@@ -60,3 +60,14 @@ gaps are **independence/correlation**, **entropy**, and **binary-level** tests.
 For a fair apples-to-apples comparison, convert both generators to uniform
 **bits/bytes** first, then run the binary suites - that's where TRNGs vs PRNGs
 typically separate (e.g. NIST p-values across trials, autocorrelation at bit level).
+
+
+
+
+
+Quantum random number generators:
+
+
+plot gausiana dupa suma numerelor generate de mai multe ori
+
+wasserstein distance intre gausiana perfecta si rezultat, respectiv log normal ( inmultire)
